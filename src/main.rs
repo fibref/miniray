@@ -1,6 +1,8 @@
 use std::fs::File;
+use texture::Texture;
 
 mod vec3;
+mod texture;
 
 fn main() {
     println!("Hello, world!");
@@ -12,7 +14,7 @@ fn main() {
 
     let mut writer = encoder.write_header().expect("Unable to write header");
     
-    let data = unsafe { Box::<[u8; 800 * 600 * 3]>::new_uninit().assume_init() };
+    let data: Texture<800, 600> = Texture::new();
     
-    writer.write_image_data(data.as_slice()).expect("Unable to write image data");
+    writer.write_image_data(data.rgb_buffer().as_slice()).expect("Unable to write image data");
 }
