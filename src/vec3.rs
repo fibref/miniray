@@ -19,12 +19,21 @@ impl ops::Sub for Vec3 {
     }
 }
 
+impl<T> ops::Mul<T> for Vec3
+where T: Into<f64> + Copy {
+    type Output = Self;
+
+    fn mul(self, scalar: T) -> Self {
+        Self(self.0 * scalar.into(), self.1 * scalar.into(), self.2 * scalar.into())
+    }
+}
+
 impl Vec3 {
-    fn dot(v1: Self, v2: Self) -> f64 {
+    pub fn dot(v1: Self, v2: Self) -> f64 {
         v1.0 * v2.0 + v1.1 * v2.1 + v1.2 * v2.2
     }
     
-    fn cross(v1: Self, v2: Self) -> Self {
+    pub fn cross(v1: Self, v2: Self) -> Self {
         Self {
             0: v1.1 * v2.2 - v1.2 * v2.1,
             1: v1.2 * v2.0 - v1.0 * v2.2,
