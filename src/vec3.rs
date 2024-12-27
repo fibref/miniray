@@ -11,11 +11,35 @@ impl ops::Add for Vec3 {
     }
 }
 
+impl ops::AddAssign for Vec3 {
+    fn add_assign(&mut self, other: Self) {
+        self.0 += other.0;
+        self.1 += other.1;
+        self.2 += other.2;
+    }
+}
+
 impl ops::Sub for Vec3 {
     type Output = Self;
 
     fn sub(self, rhs: Self) -> Self {
         Self(self.0 - rhs.0, self.1 - rhs.1, self.2 - rhs.2)
+    }
+}
+
+impl ops::SubAssign for Vec3 {
+    fn sub_assign(&mut self, other: Self) {
+        self.0 -= other.0;
+        self.1 -= other.1;
+        self.2 -= other.2;
+    }
+}
+
+impl ops::Neg for Vec3 {
+    type Output = Self;
+
+    fn neg(self) -> Self {
+        Self(-self.0, -self.1, -self.2)
     }
 }
 
