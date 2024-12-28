@@ -15,6 +15,10 @@ impl Texture {
         }
     }
 
+    pub fn set(&mut self, x: u32, y: u32, color: Vec3) {
+        self.buffer[(y * self.width + x) as usize] = color;
+    }
+
     pub fn rgb_buffer(&self) -> Vec<u8> {
         let mut buf: Vec<u8> = Vec::with_capacity((self.width * self.height * 3) as usize);
         for color in &self.buffer {

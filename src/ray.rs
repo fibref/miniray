@@ -7,6 +7,11 @@ pub struct Ray {
 
 impl Ray {
     pub fn trace(&self) -> Vec3 {
+        let x =  self.dir.0;
+        let y =  self.dir.1;
+        if x * x + y * y < 0.25 {
+            return Vec3(0.0, 1.0, 1.0);
+        }
         Vec3(0.0, 0.0, 0.0)
     }
 }
