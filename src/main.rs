@@ -2,10 +2,12 @@ use std::fs::File;
 use vec3::Vec3;
 use texture::Texture;
 use ray::Ray;
+use hittable::{Hittable, Sphere};
 
 mod vec3;
 mod texture;
 mod ray;
+mod hittable;
 
 const IMG_WIDTH: u32 = 800;
 const IMG_HEIGHT: u32 = 600;
@@ -28,7 +30,11 @@ fn main() {
     let viewport_width = viewport_height * IMG_WIDTH as f64 / IMG_HEIGHT as f64;
     let pixel_size = viewport_height / IMG_HEIGHT as f64;
     let viewport_upper_left = Vec3(-viewport_width / 2.0 + pixel_size / 2.0, viewport_height / 2.0 - pixel_size / 2.0, -FOCAL_LENGTH);
-    //println!("Viewport upper left: {:?}", viewport_upper_left);
+
+    let sphere = Sphere {
+        center: Vec3(0.0, 0.0, -1.0),
+        radius: 0.5
+    };
 
     let mut view = Ray {
         origin: Vec3(0.0, 0.0, 0.0),
@@ -37,7 +43,7 @@ fn main() {
     for v in 0..IMG_HEIGHT {
         view.dir = viewport_upper_left + Vec3(0.0, -pixel_size * v as f64, 0.0);
         for u in 0..IMG_WIDTH {
-            data.set(u, v, view.trace());
+            data.set(u, v, view.trace(&sphere));
             view.dir += Vec3(pixel_size, 0.0, 0.0);
         }
     }

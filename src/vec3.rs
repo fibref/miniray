@@ -96,6 +96,10 @@ impl Vec3 {
         (self.0 * self.0 + self.1 * self.1 + self.2 * self.2).sqrt()
     }
 
+    pub fn length_squared(self) -> f64 {
+        self.0 * self.0 + self.1 * self.1 + self.2 * self.2
+    }
+
     pub fn normalize(self) -> Self {
         let len = self.length();
         self / len
