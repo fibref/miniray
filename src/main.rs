@@ -36,15 +36,15 @@ fn main() {
         radius: 0.5
     };
 
-    let mut view = Ray {
+    let mut view_ray = Ray {
         origin: Vec3(0.0, 0.0, 0.0),
         dir: viewport_upper_left
     };
     for v in 0..IMG_HEIGHT {
-        view.dir = viewport_upper_left + Vec3(0.0, -pixel_size * v as f64, 0.0);
+        view_ray.dir = viewport_upper_left + Vec3(0.0, -pixel_size * v as f64, 0.0);
         for u in 0..IMG_WIDTH {
-            data.set(u, v, view.trace(&sphere));
-            view.dir += Vec3(pixel_size, 0.0, 0.0);
+            data.set(u, v, view_ray.trace(&sphere));
+            view_ray.dir += Vec3(pixel_size, 0.0, 0.0);
         }
     }
     
