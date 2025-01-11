@@ -2,7 +2,7 @@ use std::fs::File;
 use vec3::Vec3;
 use texture::Texture;
 use ray::Ray;
-use hittable::{Hittable, Sphere};
+use hittable::{ Hittable, Sphere };
 
 mod vec3;
 mod texture;
@@ -17,6 +17,7 @@ const FOCAL_LENGTH: f64 = 1.0;
 fn main() {
     println!("Hello, world!");
 
+    // image setup
     let out_file = File::create("output.png").expect("Unable to create file");
     let mut encoder = png::Encoder::new(out_file, IMG_WIDTH, IMG_HEIGHT);
     encoder.set_color(png::ColorType::Rgb);
@@ -31,10 +32,16 @@ fn main() {
     let pixel_size = viewport_height / IMG_HEIGHT as f64;
     let viewport_upper_left = Vec3(-viewport_width / 2.0 + pixel_size / 2.0, viewport_height / 2.0 - pixel_size / 2.0, -FOCAL_LENGTH);
 
-    let sphere = Sphere {
+    // world
+    let mut world: Vec<&dyn Hittable> = Vec::new();
+    world.push(&Sphere {
         center: Vec3(0.0, 0.0, -1.0),
         radius: 0.5
-    };
+    });
+    world.push(&Sphere {
+        center: Vec3(0.0, -100.5, -1.0),
+        radius: 100.0
+    });
 
     let mut view_ray = Ray {
         origin: Vec3(0.0, 0.0, 0.0),
@@ -43,7 +50,7 @@ fn main() {
     for v in 0..IMG_HEIGHT {
         view_ray.dir = viewport_upper_left + Vec3(0.0, -pixel_size * v as f64, 0.0);
         for u in 0..IMG_WIDTH {
-            data.set(u, v, view_ray.trace(&sphere));
+            data.set(u, v, view_ray.trace(&world));
             view_ray.dir += Vec3(pixel_size, 0.0, 0.0);
         }
     }

@@ -11,8 +11,19 @@ impl Ray {
         self.origin + self.dir * t
     }
 
-    pub fn trace(&self, obj: &dyn Hittable) -> Vec3 {
-        match obj.hit(self) {
+    pub fn trace(&self, obj_list: &Vec<&dyn Hittable>) -> Vec3 {
+        let obj = obj_list.iter().fold(None, |acc, obj| {
+            match (acc, obj.hit(self)) {
+                (None, None) => None,
+                (Some(x), None) => Some(x),
+                (None, Some(x)) => Some(x),
+                (Some(x), Some(y)) => {
+                    if x.t < y.t { Some(x) }
+                    else         { Some(y) }
+                }
+            }
+        });
+        match obj {
             Some(x) => Vec3(x.normal.0 + 1.0, x.normal.1 + 1.0, x.normal.2 + 1.0) * 0.5,
             None => {
                 // background
