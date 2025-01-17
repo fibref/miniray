@@ -4,6 +4,7 @@ use crate::ray::Ray;
 use crate::hittable::Hittable;
 
 use fastrand::Rng;
+use pbr::ProgressBar;
 
 pub struct Camera {
     pub pos: Vec3,
@@ -57,6 +58,12 @@ impl Camera {
             offsets.push(offset);
         }
 
+        let mut pb = ProgressBar::new(self.height as u64);
+        pb.show_counter = false;
+        pb.show_speed = false;
+        pb.message("Rendering: ");
+        pb.format("[#>-]");
+
         let mut view_ray = Ray {
             origin: self.pos,
             dir: viewport_upper_left
@@ -73,7 +80,9 @@ impl Camera {
 
                 view_ray.dir += delta_u;
             }
+            pb.inc();
         }
+        pb.finish();
         data
     }
 }
