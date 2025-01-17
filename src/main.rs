@@ -38,6 +38,7 @@ fn main() {
     let cam = Camera {
         width: IMG_WIDTH,
         height: IMG_HEIGHT,
+        sample_per_pixel: 10,
         ..Default::default()
     };
     let data = cam.render(&world);

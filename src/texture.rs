@@ -11,7 +11,7 @@ impl Texture {
         Self {
             width: width,
             height: height,
-            buffer: vec![Vec3(0.0, 0.0, 0.0); (width * height) as usize]
+            buffer: vec![Vec3::zero(); (width * height) as usize]
         }
     }
 

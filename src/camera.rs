@@ -3,6 +3,8 @@ use crate::texture::Texture;
 use crate::ray::Ray;
 use crate::hittable::Hittable;
 
+use fastrand::Rng;
+
 pub struct Camera {
     pub pos: Vec3,
     pub lookat: Vec3,
@@ -10,19 +12,21 @@ pub struct Camera {
 
     pub width: u32,
     pub height: u32,
-    pub fov: f64
+    pub fov: f64,
+    pub sample_per_pixel: u32
 }
 
 impl Default for Camera {
     fn default() -> Self {
         Camera {
-            pos: Vec3(0.0, 0.0, 0.0),
+            pos: Vec3::zero(),
             lookat: Vec3(0.0, 0.0, -1.0),
             world_up: Vec3(0.0, 1.0, 0.0),
 
             width: 800,
             height: 600,
-            fov: 90.0
+            fov: 90.0,
+            sample_per_pixel: 1
         }
     }
 }
@@ -46,14 +50,27 @@ impl Camera {
 
         let mut data: Texture = Texture::new(self.width, self.height);
 
+        let mut rng = Rng::new();
+        let mut offsets: Vec<Vec3> = Vec::with_capacity(self.sample_per_pixel as usize);
+        for _ in 0..self.sample_per_pixel {
+            let offset = delta_u * (rng.f64() - 0.5) + delta_v * (rng.f64() - 0.5);
+            offsets.push(offset);
+        }
+
         let mut view_ray = Ray {
             origin: self.pos,
             dir: viewport_upper_left
         };
         for v in 0..self.height {
             view_ray.dir = viewport_upper_left + delta_v * v;
+
             for u in 0..self.width {
-                data.set(u, v, view_ray.trace(&world));
+                let color = offsets.iter().fold(Vec3::zero(), |acc, offset| {
+                    let sample_ray = Ray { origin: self.pos, dir: view_ray.dir + *offset };
+                    acc + sample_ray.trace(&world)
+                }) / self.sample_per_pixel as f64;
+                data.set(u, v, color);
+
                 view_ray.dir += delta_u;
             }
         }
