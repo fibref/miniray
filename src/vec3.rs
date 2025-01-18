@@ -1,4 +1,7 @@
 use std::ops;
+use std::f64::consts::PI;
+
+use fastrand::Rng;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Vec3(pub f64, pub f64, pub f64);
@@ -107,5 +110,20 @@ impl Vec3 {
     pub fn normalize(self) -> Self {
         let len = self.length();
         self / len
+    }
+
+    pub fn random() -> Self {
+        let mut rng = Rng::new();
+
+        // theta for azimuthal, phi for polar
+        let theta = rng.f64() * 2.0 * PI;
+        let cos_phi = rng.f64() * 2.0 - 1.0;
+        let sin_phi = (1.0 - cos_phi * cos_phi).sqrt();
+
+        Vec3(
+            sin_phi * theta.cos(),
+            sin_phi * theta.sin(),
+            cos_phi
+        )
     }
 }

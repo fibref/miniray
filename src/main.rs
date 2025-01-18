@@ -39,6 +39,7 @@ fn main() {
         width: IMG_WIDTH,
         height: IMG_HEIGHT,
         sample_per_pixel: 10,
+        max_depth: 30,
         ..Default::default()
     };
     let data = cam.render(&world);

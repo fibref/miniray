@@ -8,7 +8,9 @@ pub trait Hittable {
 
 pub struct HitRecord {
     pub t: f64,
-    pub normal: Vec3
+    pub pos: Vec3,
+    pub normal: Vec3,
+    pub front_face: bool
 }
 
 pub struct Sphere {
@@ -31,20 +33,24 @@ impl Hittable for Sphere {
         let t1 = (h - dis_sqrt) / a;
         let t2 = (h + dis_sqrt) / a;
 
-        if t2 <= 0.0 {
+        if t2 <= 0.0001 {
             return None;
         }
 
-        if t1 > 0.0 {
+        if t1 > 0.0001 {
             Some(HitRecord {
                 t: t1,
-                normal: (ray.at(t1) - self.center) / self.radius
+                pos: ray.at(t1),
+                normal: (ray.at(t1) - self.center) / self.radius,
+                front_face: true
             })
         }
         else {
             Some(HitRecord {
                 t: t2,
-                normal: (ray.at(t2) - self.center) / self.radius
+                pos: ray.at(t2),
+                normal: (ray.at(t2) - self.center) / self.radius,
+                front_face: false
             })
         }
     }

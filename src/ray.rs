@@ -11,20 +11,25 @@ impl Ray {
         self.origin + self.dir * t
     }
 
-    pub fn trace(&self, obj_list: &Vec<&dyn Hittable>) -> Vec3 {
+    pub fn trace(&self, depth: u32, obj_list: &Vec<&dyn Hittable>) -> Vec3 {
+        if depth <= 0 { return Vec3::zero() }
+
         let obj = obj_list.iter().fold(None, |acc, obj| {
             match (acc, obj.hit(self)) {
                 (None, None) => None,
                 (Some(x), None) => Some(x),
                 (None, Some(x)) => Some(x),
                 (Some(x), Some(y)) => {
-                    if x.t < y.t { Some(x) }
-                    else         { Some(y) }
+                    if x.t < y.t { Some(x) } else { Some(y) }
                 }
             }
         });
         match obj {
-            Some(x) => Vec3(x.normal.0 + 1.0, x.normal.1 + 1.0, x.normal.2 + 1.0) * 0.5,
+            Some(x) => {
+                let dir = if x.front_face { x.normal } else { -x.normal } + Vec3::random();
+                let scattered = Ray { origin: x.pos, dir: dir };
+                scattered.trace(depth - 1, obj_list) * 0.5
+            },
             None => {
                 // background
                 let a = 0.5 * (self.dir.normalize().1 + 1.0);
