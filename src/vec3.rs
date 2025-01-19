@@ -46,6 +46,22 @@ impl ops::Neg for Vec3 {
     }
 }
 
+impl ops::Mul for Vec3 {
+    type Output = Self;
+
+    fn mul(self, rhs: Self) -> Self {
+        Self(self.0 * rhs.0, self.1 * rhs.1, self.2 * rhs.2)
+    }
+}
+
+impl ops::MulAssign for Vec3 {
+    fn mul_assign(&mut self, other: Self) {
+        self.0 *= other.0;
+        self.1 *= other.1;
+        self.2 *= other.2;
+    }
+}
+
 impl<T> ops::Mul<T> for Vec3
 where T: Into<f64> + Copy {
     type Output = Self;
@@ -125,5 +141,10 @@ impl Vec3 {
             sin_phi * theta.sin(),
             cos_phi
         )
+    }
+
+    pub fn near_zero(self) -> bool {
+        let s = 1e-8;
+        self.0.abs() < s && self.1.abs() < s && self.2.abs() < s
     }
 }

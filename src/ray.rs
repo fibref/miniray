@@ -26,9 +26,12 @@ impl Ray {
         });
         match obj {
             Some(x) => {
-                let dir = if x.front_face { x.normal } else { -x.normal } + Vec3::random();
-                let scattered = Ray { origin: x.pos, dir: dir };
-                scattered.trace(depth - 1, obj_list) * 0.5
+                if let Some((scattered, attenuation)) = x.scattered {
+                    scattered.trace(depth - 1, obj_list) * attenuation
+                }
+                else {
+                    Vec3::zero()
+                }
             },
             None => {
                 // background

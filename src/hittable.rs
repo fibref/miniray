@@ -1,5 +1,8 @@
+use std::rc::Rc;
+
 use crate::vec3::Vec3;
 use crate::ray::Ray;
+use crate::material::Material;
 
 pub trait Hittable {
     // returns a list of hit records, from nearest to farthest
@@ -8,14 +11,13 @@ pub trait Hittable {
 
 pub struct HitRecord {
     pub t: f64,
-    pub pos: Vec3,
-    pub normal: Vec3,
-    pub front_face: bool
+    pub scattered: Option<(Ray, Vec3)>
 }
 
 pub struct Sphere {
     pub center: Vec3,
-    pub radius: f64
+    pub radius: f64,
+    pub material: Rc<dyn Material>
 }
 
 impl Hittable for Sphere {
@@ -38,19 +40,21 @@ impl Hittable for Sphere {
         }
 
         if t1 > 0.0001 {
+            let pos = ray.at(t1);
+            let normal = (pos - self.center) / self.radius;
+            let front_face = true;
             Some(HitRecord {
                 t: t1,
-                pos: ray.at(t1),
-                normal: (ray.at(t1) - self.center) / self.radius,
-                front_face: true
+                scattered: self.material.scatter(ray, pos, normal, front_face)
             })
         }
         else {
+            let pos = ray.at(t2);
+            let normal = (pos - self.center) / self.radius;
+            let front_face = false;
             Some(HitRecord {
                 t: t2,
-                pos: ray.at(t2),
-                normal: (ray.at(t2) - self.center) / self.radius,
-                front_face: false
+                scattered: self.material.scatter(ray, pos, normal, front_face)
             })
         }
     }

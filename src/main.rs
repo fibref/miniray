@@ -1,13 +1,16 @@
 use std::fs::File;
+
 use vec3::Vec3;
 use camera::Camera;
 use hittable::{ Hittable, Sphere };
+use material::Lambertian;
 
 mod vec3;
 mod texture;
 mod ray;
 mod hittable;
 mod camera;
+mod material;
 
 const IMG_WIDTH: u32 = 800;
 const IMG_HEIGHT: u32 = 600;
@@ -25,14 +28,20 @@ fn main() {
 
     // world
     let mut world: Vec<&dyn Hittable> = Vec::new();
-    world.push(&Sphere {
+    let green = Lambertian::new(Vec3(0.0, 0.5, 0.0));
+    let gray = Lambertian::new(Vec3(0.5, 0.5, 0.5));
+    let sqhere1 = Sphere {
         center: Vec3(0.0, 0.0, -1.0),
-        radius: 0.5
-    });
-    world.push(&Sphere {
+        radius: 0.5,
+        material: green.clone()
+    };
+    let ground = Sphere {
         center: Vec3(0.0, -100.5, -1.0),
-        radius: 100.0
-    });
+        radius: 100.0,
+        material: gray.clone()
+    };
+    world.push(&sqhere1);
+    world.push(&ground);
 
     // camera
     let cam = Camera {
