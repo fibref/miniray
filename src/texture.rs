@@ -22,10 +22,19 @@ impl Texture {
     pub fn rgb_buffer(&self) -> Vec<u8> {
         let mut buf: Vec<u8> = Vec::with_capacity((self.width * self.height * 3) as usize);
         for color in &self.buffer {
-            buf.push((color.0 * 255.0) as u8);
-            buf.push((color.1 * 255.0) as u8);
-            buf.push((color.2 * 255.0) as u8);
+            let color_gamma = Self::to_gamma(*color);
+            buf.push((color_gamma.0 * 255.0) as u8);
+            buf.push((color_gamma.1 * 255.0) as u8);
+            buf.push((color_gamma.2 * 255.0) as u8);
         }
         buf
+    }
+
+    fn to_gamma(color: Vec3) -> Vec3 {
+        Vec3(
+            color.0.clamp(0.0, 1.0).sqrt(),
+            color.1.clamp(0.0, 1.0).sqrt(),
+            color.2.clamp(0.0, 1.0).sqrt(),
+        )
     }
 }
