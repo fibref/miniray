@@ -11,7 +11,10 @@ pub trait Hittable {
 
 pub struct HitRecord {
     pub t: f64,
-    pub scattered: Option<(Ray, Vec3)>
+    pub pos: Vec3,
+    pub normal: Vec3,
+    pub front_face: bool,
+    pub material: Rc<dyn Material>
 }
 
 pub struct Sphere {
@@ -41,20 +44,22 @@ impl Hittable for Sphere {
 
         if t1 > 0.0001 {
             let pos = ray.at(t1);
-            let normal = (pos - self.center) / self.radius;
-            let front_face = true;
             Some(HitRecord {
                 t: t1,
-                scattered: self.material.scatter(ray, pos, normal, front_face)
+                pos: pos,
+                normal: (pos - self.center) / self.radius,
+                front_face: true,
+                material: self.material.clone()
             })
         }
         else {
             let pos = ray.at(t2);
-            let normal = (pos - self.center) / self.radius;
-            let front_face = false;
             Some(HitRecord {
                 t: t2,
-                scattered: self.material.scatter(ray, pos, normal, front_face)
+                pos: pos,
+                normal: (pos - self.center) / self.radius,
+                front_face: false,
+                material: self.material.clone()
             })
         }
     }

@@ -2,9 +2,10 @@ use std::rc::Rc;
 
 use crate::vec3::Vec3;
 use crate::ray::Ray;
+use crate::hittable::HitRecord;
 
 pub trait Material {
-    fn scatter(&self, ray_in: &Ray, pos: Vec3, normal: Vec3, front_face: bool) -> Option<(Ray, Vec3)>;
+    fn scatter(&self, ray_in: &Ray, hit_record: &HitRecord) -> Option<(Ray, Vec3)>;
 }
 
 pub struct Lambertian {
@@ -18,18 +19,18 @@ impl Lambertian {
 }
 
 impl Material for Lambertian {
-    fn scatter(&self, _ray_in: &Ray, pos: Vec3, normal: Vec3, front_face: bool) -> Option<(Ray, Vec3)> {
+    fn scatter(&self, _ray_in: &Ray, hit_record: &HitRecord) -> Option<(Ray, Vec3)> {
         if self.albedo.near_zero() {
             return None;
         }
 
-        let normal = if front_face { normal } else { -normal };
+        let normal = if hit_record.front_face { hit_record.normal } else { -hit_record.normal };
         let mut dir = normal + Vec3::random();
         // avoid zero vector
         if dir.near_zero() {
             dir = normal;
         }
-        let ray_out = Ray { origin: pos, dir: dir };
+        let ray_out = Ray { origin: hit_record.pos, dir: dir };
         Some((ray_out, self.albedo))
     }
 }
@@ -46,15 +47,15 @@ impl Metal {
 }
 
 impl Material for Metal {
-    fn scatter(&self, ray_in: &Ray, pos: Vec3, normal: Vec3, front_face: bool) -> Option<(Ray, Vec3)> {
+    fn scatter(&self, ray_in: &Ray, hit_record: &HitRecord) -> Option<(Ray, Vec3)> {
         if self.albedo.near_zero() {
             return None;
         }
 
-        let normal = if front_face { normal } else { -normal };
-        let reflected = ray_in.dir.reflect(normal).normalize() + Vec3::random() * self.fuzziness;
-        let ray_out = Ray { origin: pos, dir: reflected };
-        if Vec3::dot(reflected, normal) > 0.0 {
+        let normal = if hit_record.front_face { hit_record.normal } else { -hit_record.normal };
+        let dir = ray_in.dir.reflect(normal).normalize() + Vec3::random() * self.fuzziness;
+        let ray_out = Ray { origin: hit_record.pos, dir: dir };
+        if Vec3::dot(dir, normal) > 0.0 {
             Some((ray_out, self.albedo))
         }
         else {

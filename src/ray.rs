@@ -26,7 +26,7 @@ impl Ray {
         });
         match obj {
             Some(x) => {
-                if let Some((scattered, attenuation)) = x.scattered {
+                if let Some((scattered, attenuation)) = x.material.scatter(self, &x) {
                     scattered.trace(depth - 1, obj_list) * attenuation
                 }
                 else {
