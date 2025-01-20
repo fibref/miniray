@@ -147,4 +147,8 @@ impl Vec3 {
         let s = 1e-8;
         self.0.abs() < s && self.1.abs() < s && self.2.abs() < s
     }
+
+    pub fn reflect(self, normal: Self) -> Self {
+        self - normal * Self::dot(self, normal) * 2.0
+    }
 }
