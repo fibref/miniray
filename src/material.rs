@@ -64,3 +64,39 @@ impl Material for Metal {
         
     }
 }
+
+pub struct Dielectric {
+    refr_index: f64
+}
+
+impl Dielectric {
+    pub fn new(refr_index: f64) -> Rc<Self> {
+        Rc::new(Self { refr_index })
+    }
+
+    pub fn reflectance_schlick(cosine: f64, refr_index: f64) -> f64 {
+        let r0 = (1.0 - refr_index) / (1.0 + refr_index);
+        let r0 = r0 * r0;
+
+        r0 + (1.0 - r0) * (1.0 - cosine).powi(5)
+    }
+}
+
+impl Material for Dielectric {
+    fn scatter(&self, ray_in: &Ray, hit_record: &HitRecord) -> Option<(Ray, Vec3)> {
+        let ri = if hit_record.front_face { 1.0 / self.refr_index } else { self.refr_index };
+
+        let in_dir = ray_in.dir.normalize();
+        let cosine = Vec3::dot(in_dir, hit_record.normal).abs();
+        
+        let reflectance = Dielectric::reflectance_schlick(cosine, ri);
+
+        if fastrand::f64() > reflectance {
+            if let Some(refracted) = in_dir.refract(hit_record.normal, ri, hit_record.front_face) {
+                return Some((Ray{ origin: hit_record.pos, dir: refracted }, Vec3(1.0, 1.0, 1.0)));
+            }
+        }
+        let refracted = in_dir.reflect(hit_record.normal);
+        Some((Ray{ origin: hit_record.pos, dir: refracted }, Vec3(1.0, 1.0, 1.0)))
+    }
+}

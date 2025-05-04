@@ -3,7 +3,7 @@ use std::fs::File;
 use vec3::Vec3;
 use camera::Camera;
 use hittable::{ Hittable, Sphere };
-use material::{ Lambertian, Metal };
+use material::{ Lambertian, Metal, Dielectric };
 
 mod vec3;
 mod texture;
@@ -29,12 +29,13 @@ fn main() {
     // world
     let mut world: Vec<&dyn Hittable> = Vec::new();
     let mat_center = Lambertian::new(Vec3(0.1, 0.2, 0.5));
-    let mat_left = Metal::new(Vec3(0.7, 0.7, 0.7), 0.2);
+    let mat_left = Dielectric::new(1.5);
+    let mat_bubble = Dielectric::new(1.0 / 1.5);
     let mat_right = Metal::new(Vec3(0.1, 0.1, 0.11), 0.7);
     let mat_ground = Lambertian::new(Vec3(0.8, 0.8, 0.0));
 
     let center = Sphere {
-        center: Vec3(0.0, 0.0, -1.1),
+        center: Vec3(0.0, 0.0, -1.2),
         radius: 0.5,
         material: mat_center.clone()
     };
@@ -42,6 +43,11 @@ fn main() {
         center: Vec3(-1.0, 0.0, -1.0),
         radius: 0.5,
         material: mat_left.clone()
+    };
+    let bubble = Sphere {
+        center: Vec3(-1.0, 0.0, -1.0),
+        radius: 0.4,
+        material: mat_bubble.clone()
     };
     let right = Sphere {
         center: Vec3(1.0, 0.0, -1.0),
@@ -55,6 +61,7 @@ fn main() {
     };
     world.push(&center);
     world.push(&left);
+    world.push(&bubble);
     world.push(&right);
     world.push(&ground);
 

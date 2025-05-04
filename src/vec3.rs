@@ -151,4 +151,18 @@ impl Vec3 {
     pub fn reflect(self, normal: Self) -> Self {
         self - normal * Self::dot(self, normal) * 2.0
     }
+
+    /// requires the ray to be normalized
+    pub fn refract(self, normal: Self, index_ratio: f64, front_face: bool) -> Option<Self> {
+        let ray_out_perp = (self - normal * Self::dot(self, normal)) * index_ratio;
+
+        if ray_out_perp.length_squared() > 1.0 {
+            // total internal reflection
+            return None;
+        }
+
+        let normal_out = if front_face { -normal } else { normal };
+        let ray_out_para = normal_out * (1.0 - ray_out_perp.length_squared()).sqrt();
+        Some(ray_out_perp + ray_out_para)
+    }
 }
