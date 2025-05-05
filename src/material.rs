@@ -2,7 +2,7 @@ use std::rc::Rc;
 
 use crate::vec3::Vec3;
 use crate::ray::Ray;
-use crate::hittable::HitRecord;
+use crate::hittable::{ HitRecord, Facing };
 
 pub trait Material {
     fn scatter(&self, ray_in: &Ray, hit_record: &HitRecord) -> Option<(Ray, Vec3)>;
@@ -24,7 +24,10 @@ impl Material for Lambertian {
             return None;
         }
 
-        let normal = if hit_record.front_face { hit_record.normal } else { -hit_record.normal };
+        let normal = match hit_record.facing {
+            Facing::Front => hit_record.normal,
+            Facing::Back => -hit_record.normal
+        };
         let mut dir = normal + Vec3::random();
         // avoid zero vector
         if dir.near_zero() {
@@ -52,7 +55,10 @@ impl Material for Metal {
             return None;
         }
 
-        let normal = if hit_record.front_face { hit_record.normal } else { -hit_record.normal };
+        let normal = match hit_record.facing {
+            Facing::Front => hit_record.normal,
+            Facing::Back => -hit_record.normal
+        };
         let dir = ray_in.dir.reflect(normal).normalize() + Vec3::random() * self.fuzziness;
         let ray_out = Ray { origin: hit_record.pos, dir: dir };
         if Vec3::dot(dir, normal) > 0.0 {
@@ -84,7 +90,10 @@ impl Dielectric {
 
 impl Material for Dielectric {
     fn scatter(&self, ray_in: &Ray, hit_record: &HitRecord) -> Option<(Ray, Vec3)> {
-        let ri = if hit_record.front_face { 1.0 / self.refr_index } else { self.refr_index };
+        let ri = match hit_record.facing {
+            Facing::Front => 1.0 / self.refr_index,
+            Facing::Back => self.refr_index
+        };
 
         let in_dir = ray_in.dir.normalize();
         let cosine = Vec3::dot(in_dir, hit_record.normal).abs();
@@ -92,7 +101,7 @@ impl Material for Dielectric {
         let reflectance = Dielectric::reflectance_schlick(cosine, ri);
 
         if fastrand::f64() > reflectance {
-            if let Some(refracted) = in_dir.refract(hit_record.normal, ri, hit_record.front_face) {
+            if let Some(refracted) = in_dir.refract(hit_record.normal, ri, hit_record.facing) {
                 return Some((Ray{ origin: hit_record.pos, dir: refracted }, Vec3(1.0, 1.0, 1.0)));
             }
         }

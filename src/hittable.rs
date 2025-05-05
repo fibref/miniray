@@ -5,15 +5,20 @@ use crate::ray::Ray;
 use crate::material::Material;
 
 pub trait Hittable {
-    // returns a list of hit records, from nearest to farthest
     fn hit(&self, ray: &Ray) -> Option<HitRecord>;
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum Facing {
+    Front,
+    Back
 }
 
 pub struct HitRecord {
     pub t: f64,
     pub pos: Vec3,
     pub normal: Vec3,
-    pub front_face: bool,
+    pub facing: Facing,
     pub material: Rc<dyn Material>
 }
 
@@ -48,7 +53,7 @@ impl Hittable for Sphere {
                 t: t1,
                 pos: pos,
                 normal: (pos - self.center) / self.radius,
-                front_face: true,
+                facing: Facing::Front,
                 material: self.material.clone()
             })
         }
@@ -58,7 +63,7 @@ impl Hittable for Sphere {
                 t: t2,
                 pos: pos,
                 normal: (pos - self.center) / self.radius,
-                front_face: false,
+                facing: Facing::Back,
                 material: self.material.clone()
             })
         }

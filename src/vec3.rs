@@ -1,6 +1,8 @@
 use std::ops;
 use std::f64::consts::PI;
 
+use crate::hittable::Facing;
+
 use fastrand::Rng;
 
 #[derive(Debug, Clone, Copy)]
@@ -153,7 +155,7 @@ impl Vec3 {
     }
 
     /// requires the ray to be normalized
-    pub fn refract(self, normal: Self, index_ratio: f64, front_face: bool) -> Option<Self> {
+    pub fn refract(self, normal: Self, index_ratio: f64, facing: Facing) -> Option<Self> {
         let ray_out_perp = (self - normal * Self::dot(self, normal)) * index_ratio;
 
         if ray_out_perp.length_squared() > 1.0 {
@@ -161,7 +163,10 @@ impl Vec3 {
             return None;
         }
 
-        let normal_out = if front_face { -normal } else { normal };
+        let normal_out = match facing {
+            Facing::Front => -normal,
+            Facing::Back => normal
+        };
         let ray_out_para = normal_out * (1.0 - ray_out_perp.length_squared()).sqrt();
         Some(ray_out_perp + ray_out_para)
     }
