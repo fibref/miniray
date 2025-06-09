@@ -2,7 +2,7 @@ use std::fs::File;
 
 use vec3::Vec3;
 use camera::Camera;
-use hittable::{ Hittable, Sphere };
+use hittable::{ Hittable, Sphere, Triangle };
 use material::{ Lambertian, Metal, Dielectric };
 
 mod vec3;
@@ -34,36 +34,41 @@ fn main() {
     let mat_right = Metal::new(Vec3(0.1, 0.1, 0.11), 0.7);
     let mat_ground = Lambertian::new(Vec3(0.8, 0.8, 0.0));
 
-    let center = Sphere {
-        center: Vec3(0.0, 0.0, -1.2),
-        radius: 0.5,
-        material: mat_center.clone()
-    };
-    let left = Sphere {
-        center: Vec3(-1.0, 0.0, -1.0),
-        radius: 0.5,
-        material: mat_left.clone()
-    };
-    let bubble = Sphere {
-        center: Vec3(-1.0, 0.0, -1.0),
-        radius: 0.4,
-        material: mat_bubble.clone()
-    };
-    let right = Sphere {
-        center: Vec3(1.0, 0.0, -1.0),
-        radius: 0.5,
-        material: mat_right.clone()
-    };
-    let ground = Sphere {
-        center: Vec3(0.0, -100.5, -1.0),
-        radius: 100.0,
-        material: mat_ground.clone()
-    };
-    world.push(&center);
+    /* let center = Sphere::new(
+        Vec3(0.0, 0.0, -1.2),
+        0.5,
+        mat_center.clone()
+    ); */
+    let left = Sphere::new(
+        Vec3(-1.0, 0.0, -1.0),
+        0.5,
+        mat_left.clone()
+    );
+    let bubble = Sphere::new(
+        Vec3(-1.0, 0.0, -1.0),
+        0.4,
+        mat_bubble.clone()
+    );
+    let right = Sphere::new(
+        Vec3(1.0, 0.0, -1.0),
+        0.5,
+        mat_right.clone()
+    );
+    let ground = Sphere::new(
+        Vec3(0.0, -100.5, -1.0),
+        100.0,
+        mat_ground.clone()
+    );
+    let tri = Triangle::new(
+        [Vec3(-2.0, 1.0, -4.0), Vec3(2.0, 0.0, -4.0), Vec3(0.0, 2.0, -5.0)],
+        mat_center
+    );
+    // world.push(&center);
     world.push(&left);
     world.push(&bubble);
     world.push(&right);
     world.push(&ground);
+    world.push(&tri);
 
     // camera
     let cam = Camera {

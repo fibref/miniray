@@ -23,9 +23,15 @@ pub struct HitRecord {
 }
 
 pub struct Sphere {
-    pub center: Vec3,
-    pub radius: f64,
-    pub material: Rc<dyn Material>
+    center: Vec3,
+    radius: f64,
+    material: Rc<dyn Material>
+}
+
+impl Sphere {
+    pub fn new(center: Vec3, radius: f64, material: Rc<dyn Material>) -> Self {
+        Self { center, radius, material }
+    }
 }
 
 impl Hittable for Sphere {
@@ -67,5 +73,72 @@ impl Hittable for Sphere {
                 material: self.material.clone()
             })
         }
+    }
+}
+
+
+pub struct Triangle {
+    vertices: [Vec3; 3],
+    v1: Vec3,
+    v2: Vec3,
+    normal: Vec3,
+    material: Rc<dyn Material>
+}
+
+impl Triangle {
+    pub fn new(vertices: [Vec3; 3], material: Rc<dyn Material>) -> Self {
+        let v1 = vertices[1] - vertices[0];
+        let v2 = vertices[2] - vertices[0];
+        Self {
+            vertices: vertices,
+            v1: v1,
+            v2: v2,
+            normal: Vec3::cross(v1, v2).normalize(),
+            material: material
+        }
+    }
+}
+
+impl Hittable for Triangle {
+    fn hit(&self, ray: &Ray) -> Option<HitRecord> {
+        // Möller-Trumbore
+
+        let s1 = Vec3::cross(ray.dir, self.v2);
+        let det = Vec3::dot(self.v1, s1);
+
+        // check if the ray is parallel to the triangle
+        if det.abs() < 0.0001 {
+            return None;
+        }
+
+        let inv_det = 1.0 / det;
+
+        // calculate and check u
+        let to_orig = ray.origin - self.vertices[0];
+        let u = Vec3::dot(to_orig, s1) * inv_det;
+        if u < 0.0 || u > 1.0 {
+            return None;
+        }
+
+        // calculate and check v
+        let s2 = Vec3::cross(to_orig, self.v1);
+        let v = Vec3::dot(ray.dir, s2) * inv_det;
+        if v < 0.0 || u + v > 1.0 {
+            return None;
+        }
+
+        // calculate and check t
+        let t = Vec3::dot(self.v2, s2) * inv_det;
+        if t < 0.0001 {
+            return None;
+        }
+
+        Some(HitRecord {
+            t: t,
+            pos: ray.at(t),
+            normal: self.normal,
+            facing: Facing::Front, // todo
+            material: self.material.clone()
+        })
     }
 }
