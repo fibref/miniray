@@ -1,5 +1,3 @@
-use std::rc::Rc;
-
 use crate::vec3::Vec3;
 use crate::ray::Ray;
 use crate::hittable::{ HitRecord, Facing };
@@ -13,8 +11,8 @@ pub struct Lambertian {
 }
 
 impl Lambertian {
-    pub fn new(albedo: Vec3) -> Rc<Self> {
-        Rc::new(Self { albedo })
+    pub fn new(albedo: Vec3) -> Self {
+        Self { albedo }
     }
 }
 
@@ -44,8 +42,8 @@ pub struct Metal {
 }
 
 impl Metal {
-    pub fn new(albedo: Vec3, fuzziness: f64) -> Rc<Self> {
-        Rc::new(Self { albedo, fuzziness })
+    pub fn new(albedo: Vec3, fuzziness: f64) -> Self {
+        Self { albedo, fuzziness }
     }
 }
 
@@ -76,8 +74,8 @@ pub struct Dielectric {
 }
 
 impl Dielectric {
-    pub fn new(refr_index: f64) -> Rc<Self> {
-        Rc::new(Self { refr_index })
+    pub fn new(refr_index: f64) -> Self {
+        Self { refr_index }
     }
 
     pub fn reflectance_schlick(cosine: f64, refr_index: f64) -> f64 {

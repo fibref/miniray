@@ -42,26 +42,26 @@ fn main() {
     let left = Sphere::new(
         Vec3(-1.0, 0.0, -1.0),
         0.5,
-        mat_left.clone()
+        &mat_left
     );
     let bubble = Sphere::new(
         Vec3(-1.0, 0.0, -1.0),
         0.4,
-        mat_bubble.clone()
+        &mat_bubble
     );
     let right = Sphere::new(
         Vec3(1.0, 0.0, -1.0),
         0.5,
-        mat_right.clone()
+        &mat_right
     );
     let ground = Sphere::new(
         Vec3(0.0, -100.5, -1.0),
         100.0,
-        mat_ground.clone()
+        &mat_ground
     );
     let tri = Triangle::new(
         [Vec3(-2.0, 1.0, -4.0), Vec3(2.0, 0.0, -4.0), Vec3(0.0, 2.0, -5.0)],
-        mat_center
+        &mat_center
     );
     // world.push(&center);
     world.push(&left);

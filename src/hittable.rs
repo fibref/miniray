@@ -1,5 +1,3 @@
-use std::rc::Rc;
-
 use crate::vec3::Vec3;
 use crate::ray::Ray;
 use crate::material::Material;
@@ -14,27 +12,27 @@ pub enum Facing {
     Back
 }
 
-pub struct HitRecord {
+pub struct HitRecord<'a> {
     pub t: f64,
     pub pos: Vec3,
     pub normal: Vec3,
     pub facing: Facing,
-    pub material: Rc<dyn Material>
+    pub material: &'a dyn Material
 }
 
-pub struct Sphere {
+pub struct Sphere<'a> {
     center: Vec3,
     radius: f64,
-    material: Rc<dyn Material>
+    material: &'a dyn Material
 }
 
-impl Sphere {
-    pub fn new(center: Vec3, radius: f64, material: Rc<dyn Material>) -> Self {
+impl<'a> Sphere<'a> {
+    pub fn new(center: Vec3, radius: f64, material: &'a dyn Material) -> Self {
         Self { center, radius, material }
     }
 }
 
-impl Hittable for Sphere {
+impl Hittable for Sphere<'_> {
     fn hit(&self, ray: &Ray) -> Option<HitRecord> {
         let oc = self.center - ray.origin;
         let a = ray.dir.length_squared();
@@ -60,7 +58,7 @@ impl Hittable for Sphere {
                 pos: pos,
                 normal: (pos - self.center) / self.radius,
                 facing: Facing::Front,
-                material: self.material.clone()
+                material: self.material
             })
         }
         else {
@@ -70,23 +68,23 @@ impl Hittable for Sphere {
                 pos: pos,
                 normal: (pos - self.center) / self.radius,
                 facing: Facing::Back,
-                material: self.material.clone()
+                material: self.material
             })
         }
     }
 }
 
 
-pub struct Triangle {
+pub struct Triangle<'a> {
     vertices: [Vec3; 3],
     v1: Vec3,
     v2: Vec3,
     normal: Vec3,
-    material: Rc<dyn Material>
+    material: &'a dyn Material
 }
 
-impl Triangle {
-    pub fn new(vertices: [Vec3; 3], material: Rc<dyn Material>) -> Self {
+impl<'a> Triangle<'a> {
+    pub fn new(vertices: [Vec3; 3], material: &'a dyn Material) -> Self {
         let v1 = vertices[1] - vertices[0];
         let v2 = vertices[2] - vertices[0];
         Self {
@@ -99,7 +97,7 @@ impl Triangle {
     }
 }
 
-impl Hittable for Triangle {
+impl Hittable for Triangle<'_> {
     fn hit(&self, ray: &Ray) -> Option<HitRecord> {
         // Möller-Trumbore
 
@@ -138,7 +136,7 @@ impl Hittable for Triangle {
             pos: ray.at(t),
             normal: self.normal,
             facing: Facing::Front, // todo
-            material: self.material.clone()
+            material: self.material
         })
     }
 }
