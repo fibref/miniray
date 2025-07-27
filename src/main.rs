@@ -1,5 +1,3 @@
-use std::fs::File;
-
 use vec3::Vec3;
 use camera::Camera;
 use hittable::{ Hittable, Sphere, Triangle };
@@ -17,14 +15,6 @@ const IMG_HEIGHT: u32 = 600;
 
 fn main() {
     println!("Hello, world!");
-
-    // image setup
-    let out_file = File::create("output.png").expect("Unable to create file");
-    let mut encoder = png::Encoder::new(out_file, IMG_WIDTH, IMG_HEIGHT);
-    encoder.set_color(png::ColorType::Rgb);
-    encoder.set_depth(png::BitDepth::Eight);
-
-    let mut writer = encoder.write_header().expect("Unable to write header");
 
     // world
     let mut world: Vec<&dyn Hittable> = Vec::new();
@@ -80,5 +70,5 @@ fn main() {
     };
     let data = cam.render(&world);
     
-    writer.write_image_data(data.rgb_buffer().as_slice()).expect("Unable to write image data");
+    image::save_buffer("output.png", data.rgb_buffer().as_slice(), IMG_WIDTH, IMG_HEIGHT, image::ColorType::Rgb8).expect("Unable to write image data");
 }
