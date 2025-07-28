@@ -1,7 +1,10 @@
 use vec3::Vec3;
+use texture::Texture;
 use camera::Camera;
 use hittable::{ Hittable, Sphere, Triangle };
-use material::{ Lambertian, Metal, Dielectric };
+use material::{ Lambertian, Metal, Dielectric, BasicMaterial };
+
+use image::ImageReader;
 
 mod vec3;
 mod texture;
@@ -16,19 +19,25 @@ const IMG_HEIGHT: u32 = 600;
 fn main() {
     println!("Hello, world!");
 
+    let earthmap_img = ImageReader::open("earthmap.jpg").unwrap().decode().unwrap().to_rgb8();
+    let (earthmap_width, earthmap_height) = earthmap_img.dimensions();
+    let earthmap_buf = earthmap_img.as_raw();
+    let earthmap = Texture::from_rgb_buffer(earthmap_width, earthmap_height, earthmap_buf);
+
     // world
     let mut world: Vec<&dyn Hittable> = Vec::new();
-    let mat_center = Lambertian::new(Vec3(0.1, 0.2, 0.5));
+    let mat_center = BasicMaterial::new(&earthmap);
     let mat_left = Dielectric::new(1.5);
     let mat_bubble = Dielectric::new(1.0 / 1.5);
     let mat_right = Metal::new(Vec3(0.1, 0.1, 0.11), 0.7);
     let mat_ground = Lambertian::new(Vec3(0.8, 0.8, 0.0));
+    let mat_tri = Lambertian::new(Vec3(0.2, 0.5, 0.7));
 
-    /* let center = Sphere::new(
+    let center = Sphere::new(
         Vec3(0.0, 0.0, -1.2),
         0.5,
-        mat_center.clone()
-    ); */
+        &mat_center
+    );
     let left = Sphere::new(
         Vec3(-1.0, 0.0, -1.0),
         0.5,
@@ -51,9 +60,9 @@ fn main() {
     );
     let tri = Triangle::new(
         [Vec3(-2.0, 1.0, -4.0), Vec3(2.0, 0.0, -4.0), Vec3(0.0, 2.0, -5.0)],
-        &mat_center
+        &mat_tri
     );
-    // world.push(&center);
+    world.push(&center);
     world.push(&left);
     world.push(&bubble);
     world.push(&right);

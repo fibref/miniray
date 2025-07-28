@@ -1,3 +1,5 @@
+use std::f64::consts::PI;
+
 use crate::vec3::Vec3;
 use crate::ray::Ray;
 use crate::material::Material;
@@ -16,6 +18,7 @@ pub struct HitRecord<'a> {
     pub t: f64,
     pub pos: Vec3,
     pub normal: Vec3,
+    pub uv: (f64, f64),
     pub facing: Facing,
     pub material: &'a dyn Material
 }
@@ -29,6 +32,12 @@ pub struct Sphere<'a> {
 impl<'a> Sphere<'a> {
     pub fn new(center: Vec3, radius: f64, material: &'a dyn Material) -> Self {
         Self { center, radius, material }
+    }
+
+    pub fn get_uv(pos: Vec3) -> (f64, f64) {
+        let theta = (-pos.1).acos();
+        let phi = (-pos.2).atan2(pos.0) + PI;
+        (phi / (2.0 * PI), theta / PI)
     }
 }
 
@@ -53,20 +62,24 @@ impl Hittable for Sphere<'_> {
 
         if t1 > 0.0001 {
             let pos = ray.at(t1);
+            let normal = (pos - self.center) / self.radius;
             Some(HitRecord {
                 t: t1,
                 pos: pos,
-                normal: (pos - self.center) / self.radius,
+                normal: normal,
+                uv: Self::get_uv(normal),
                 facing: Facing::Front,
                 material: self.material
             })
         }
         else {
             let pos = ray.at(t2);
+            let normal = (pos - self.center) / self.radius;
             Some(HitRecord {
                 t: t2,
                 pos: pos,
-                normal: (pos - self.center) / self.radius,
+                normal: normal,
+                uv: Self::get_uv(normal),
                 facing: Facing::Back,
                 material: self.material
             })
@@ -135,6 +148,7 @@ impl Hittable for Triangle<'_> {
             t: t,
             pos: ray.at(t),
             normal: self.normal,
+            uv: (0.0, 0.0), // todoo
             facing: Facing::Front, // todo
             material: self.material
         })

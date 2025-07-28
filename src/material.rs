@@ -1,3 +1,4 @@
+use crate::texture::Texture;
 use crate::vec3::Vec3;
 use crate::ray::Ray;
 use crate::hittable::{ HitRecord, Facing };
@@ -105,5 +106,38 @@ impl Material for Dielectric {
         }
         let refracted = in_dir.reflect(hit_record.normal);
         Some((Ray{ origin: hit_record.pos, dir: refracted }, Vec3(1.0, 1.0, 1.0)))
+    }
+}
+
+pub struct BasicMaterial<'a> {
+    albedo: &'a Texture
+}
+
+impl<'a> BasicMaterial<'a> {
+    pub fn new(albedo: &'a Texture) -> Self {
+        Self { albedo }
+    }
+}
+
+impl Material for BasicMaterial<'_> {
+    fn scatter(&self, _ray_in: &Ray, hit_record: &HitRecord) -> Option<(Ray, Vec3)> {
+        let (u, v ) = hit_record.uv;
+        let albedo = self.albedo.sample(u, v);
+
+        if albedo.near_zero() {
+            return None;
+        }
+
+        let normal = match hit_record.facing {
+            Facing::Front => hit_record.normal,
+            Facing::Back => -hit_record.normal
+        };
+        let mut dir = normal + Vec3::random();
+        // avoid zero vector
+        if dir.near_zero() {
+            dir = normal;
+        }
+        let ray_out = Ray { origin: hit_record.pos, dir: dir };
+        Some((ray_out, albedo))
     }
 }
