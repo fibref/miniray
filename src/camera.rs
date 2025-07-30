@@ -15,7 +15,8 @@ pub struct Camera {
     pub height: u32,
     pub fov: f64,
     pub sample_per_pixel: u32,
-    pub max_depth: u32
+    pub max_depth: u32,
+    pub background: Vec3,
 }
 
 impl Default for Camera {
@@ -29,7 +30,8 @@ impl Default for Camera {
             height: 600,
             fov: 90.0,
             sample_per_pixel: 1,
-            max_depth: 20
+            max_depth: 20,
+            background: Vec3(0.01, 0.01, 0.01),
         }
     }
 }
@@ -76,7 +78,7 @@ impl Camera {
             for u in 0..self.width {
                 let color = offsets.iter().fold(Vec3::zero(), |acc, offset| {
                     let sample_ray = Ray { origin: self.pos, dir: view_ray.dir + *offset };
-                    acc + sample_ray.trace(self.max_depth, &world)
+                    acc + sample_ray.trace(self.max_depth, &world, self.background)
                 }) / self.sample_per_pixel as f64;
                 data.set(u, v, color);
 

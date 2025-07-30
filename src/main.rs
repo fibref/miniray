@@ -2,7 +2,7 @@ use vec3::Vec3;
 use texture::Texture;
 use camera::Camera;
 use hittable::{ Hittable, Sphere, Triangle };
-use material::{ Lambertian, Metal, Dielectric, BasicMaterial };
+use material::{ Lambertian, Metal, Dielectric, BasicMaterial, Light };
 
 use image::ImageReader;
 
@@ -27,53 +27,38 @@ fn main() {
     // world
     let mut world: Vec<&dyn Hittable> = Vec::new();
     let mat_center = BasicMaterial::new(&earthmap);
-    let mat_left = Dielectric::new(1.5);
-    let mat_bubble = Dielectric::new(1.0 / 1.5);
-    let mat_right = Metal::new(Vec3(0.1, 0.1, 0.11), 0.7);
     let mat_ground = Lambertian::new(Vec3(0.8, 0.8, 0.0));
-    let mat_tri = Lambertian::new(Vec3(0.2, 0.5, 0.7));
+    let mat_light = Light::new(Vec3(4.0, 4.0, 4.0));
 
     let center = Sphere::new(
         Vec3(0.0, 0.0, -1.2),
         0.5,
         &mat_center
     );
-    let left = Sphere::new(
-        Vec3(-1.0, 0.0, -1.0),
-        0.5,
-        &mat_left
-    );
-    let bubble = Sphere::new(
-        Vec3(-1.0, 0.0, -1.0),
-        0.4,
-        &mat_bubble
-    );
-    let right = Sphere::new(
-        Vec3(1.0, 0.0, -1.0),
-        0.5,
-        &mat_right
-    );
     let ground = Sphere::new(
         Vec3(0.0, -100.5, -1.0),
         100.0,
         &mat_ground
     );
-    let tri = Triangle::new(
-        [Vec3(-2.0, 1.0, -4.0), Vec3(2.0, 0.0, -4.0), Vec3(0.0, 2.0, -5.0)],
-        &mat_tri
+    let light_1 = Triangle::new(
+        [Vec3(1.8, -0.2, -0.5), Vec3(1.8, 0.8, -0.5), Vec3(1.2, -0.2, -1.5)],
+        &mat_light
     );
+    let light_2 = Triangle::new(
+        [Vec3(1.2, 0.8, -1.5), Vec3(1.8, 0.8, -0.5), Vec3(1.2, -0.2, -1.5)],
+        &mat_light
+    );
+    
     world.push(&center);
-    world.push(&left);
-    world.push(&bubble);
-    world.push(&right);
     world.push(&ground);
-    world.push(&tri);
+    world.push(&light_1);
+    world.push(&light_2);
 
     // camera
     let cam = Camera {
         width: IMG_WIDTH,
         height: IMG_HEIGHT,
-        sample_per_pixel: 10,
+        sample_per_pixel: 30,
         max_depth: 30,
         ..Default::default()
     };

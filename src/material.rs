@@ -5,6 +5,9 @@ use crate::hittable::{ HitRecord, Facing };
 
 pub trait Material {
     fn scatter(&self, ray_in: &Ray, hit_record: &HitRecord) -> Option<(Ray, Vec3)>;
+    fn emit(&self) -> Vec3 {
+        Vec3::zero()
+    }
 }
 
 pub struct Lambertian {
@@ -139,5 +142,25 @@ impl Material for BasicMaterial<'_> {
         }
         let ray_out = Ray { origin: hit_record.pos, dir: dir };
         Some((ray_out, albedo))
+    }
+}
+
+pub struct Light {
+    pub color: Vec3
+}
+
+impl Light {
+    pub fn new(color: Vec3) -> Self {
+        Self { color }
+    }
+}
+
+impl Material for Light {
+    fn scatter(&self, _ray_in: &Ray, _hit_record: &HitRecord) -> Option<(Ray, Vec3)> {
+        None
+    }
+
+    fn emit(&self) -> Vec3 {
+        self.color
     }
 }
