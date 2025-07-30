@@ -78,7 +78,7 @@ impl Camera {
             for u in 0..self.width {
                 let color = offsets.iter().fold(Vec3::zero(), |acc, offset| {
                     let sample_ray = Ray { origin: self.pos, dir: view_ray.dir + *offset };
-                    acc + sample_ray.trace(self.max_depth, &world, self.background)
+                    acc + sample_ray.trace(self.max_depth, world, self.background)
                 }) / self.sample_per_pixel as f64;
                 data.set(u, v, color);
 

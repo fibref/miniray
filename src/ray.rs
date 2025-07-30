@@ -12,7 +12,7 @@ impl Ray {
     }
 
     pub fn trace(&self, depth: u32, obj_list: &Vec<&dyn Hittable>, background: Vec3) -> Vec3 {
-        if depth <= 0 { return Vec3::zero() }
+        if depth == 0 { return Vec3::zero() }
 
         let obj = obj_list.iter().fold(None, |acc, obj| {
             match (acc, obj.hit(self)) {

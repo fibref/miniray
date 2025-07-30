@@ -15,7 +15,7 @@ impl Texture {
         }
     }
 
-    pub fn from_rgb_buffer(width: u32, height: u32, buffer: &Vec<u8>) -> Self {
+    pub fn from_rgb_buffer(width: u32, height: u32, buffer: &[u8]) -> Self {
         let mut buf: Vec<Vec3> = Vec::with_capacity((width * height) as usize);
         for i in buffer.chunks_exact(3) {
             buf.push(
