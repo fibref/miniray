@@ -1,5 +1,5 @@
 use crate::texture::Texture;
-use crate::vec3::Vec3;
+use crate::vec3::{ Vec3, Vec2 };
 use crate::ray::Ray;
 use crate::hittable::{ HitRecord, Facing };
 
@@ -124,7 +124,7 @@ impl<'a> BasicMaterial<'a> {
 
 impl Material for BasicMaterial<'_> {
     fn scatter(&self, _ray_in: &Ray, hit_record: &HitRecord) -> Option<(Ray, Vec3)> {
-        let (u, v ) = hit_record.uv;
+        let Vec2(u, v) = hit_record.tex_coords;
         let albedo = self.albedo.sample(u, v);
 
         if albedo.near_zero() {

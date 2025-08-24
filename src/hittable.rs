@@ -1,11 +1,12 @@
 use std::f64::consts::PI;
+use std::ops;
 
-use crate::vec3::Vec3;
+use crate::vec3::{ Vec3, Vec2 };
 use crate::ray::Ray;
 use crate::material::Material;
 
 pub trait Hittable {
-    fn hit(&self, ray: &Ray) -> Option<HitRecord>;
+    fn hit(&self, ray: &Ray) -> Option<HitRecord<'_>>;
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -17,8 +18,9 @@ pub enum Facing {
 pub struct HitRecord<'a> {
     pub t: f64,
     pub pos: Vec3,
+    // normalized
     pub normal: Vec3,
-    pub uv: (f64, f64),
+    pub tex_coords: Vec2,
     pub facing: Facing,
     pub material: &'a dyn Material
 }
@@ -34,15 +36,15 @@ impl<'a> Sphere<'a> {
         Self { center, radius, material }
     }
 
-    pub fn get_uv(pos: Vec3) -> (f64, f64) {
+    pub fn get_uv(pos: Vec3) -> Vec2 {
         let theta = (-pos.1).acos();
         let phi = (-pos.2).atan2(pos.0) + PI;
-        (phi / (2.0 * PI), theta / PI)
+        Vec2(phi / (2.0 * PI), theta / PI)
     }
 }
 
 impl Hittable for Sphere<'_> {
-    fn hit(&self, ray: &Ray) -> Option<HitRecord> {
+    fn hit(&self, ray: &Ray) -> Option<HitRecord<'_>> {
         let oc = self.center - ray.origin;
         let a = ray.dir.length_squared();
         let h = Vec3::dot(ray.dir, oc); // h = -b / 2
@@ -67,7 +69,7 @@ impl Hittable for Sphere<'_> {
                 t: t1,
                 pos: pos,
                 normal: normal,
-                uv: Self::get_uv(normal),
+                tex_coords: Self::get_uv(normal),
                 facing: Facing::Front,
                 material: self.material
             })
@@ -79,7 +81,7 @@ impl Hittable for Sphere<'_> {
                 t: t2,
                 pos: pos,
                 normal: normal,
-                uv: Self::get_uv(normal),
+                tex_coords: Self::get_uv(normal),
                 facing: Facing::Back,
                 material: self.material
             })
@@ -90,28 +92,48 @@ impl Hittable for Sphere<'_> {
 
 pub struct Triangle<'a> {
     vertices: [Vec3; 3],
+    normal: [Vec3; 3],
+    tex_coords: [Vec2; 3],
     v1: Vec3,
     v2: Vec3,
-    normal: Vec3,
     material: &'a dyn Material
 }
 
 impl<'a> Triangle<'a> {
-    pub fn new(vertices: [Vec3; 3], material: &'a dyn Material) -> Self {
+    pub fn new(vertices: [Vec3; 3], normal: [Vec3; 3], tex_coords: [Vec2; 3], material: &'a dyn Material) -> Self {
         let v1 = vertices[1] - vertices[0];
         let v2 = vertices[2] - vertices[0];
         Self {
-            vertices: vertices,
-            v1: v1,
-            v2: v2,
-            normal: Vec3::cross(v1, v2).normalize(),
-            material: material
+            vertices,
+            normal,
+            tex_coords,
+            v1,
+            v2,
+            material
         }
+    }
+
+    pub fn new_with_vertices(vertices: [Vec3; 3], material: &'a dyn Material) -> Self {
+        let v1 = vertices[1] - vertices[0];
+        let v2 = vertices[2] - vertices[0];
+        Self {
+            vertices,
+            normal: [Vec3::cross(v1, v2).normalize(); 3],
+            tex_coords: [Vec2::zero(); 3],
+            v1,
+            v2,
+            material
+        }
+    }
+
+    pub fn interpolate<T>(value: &[T; 3], (u, v): (f64, f64)) -> T
+    where T: ops::Add<Output = T> + ops::Mul<f64, Output = T> + Copy {
+        value[0] * (1.0 - u - v) + value[1] * u + value[2] * v
     }
 }
 
 impl Hittable for Triangle<'_> {
-    fn hit(&self, ray: &Ray) -> Option<HitRecord> {
+    fn hit(&self, ray: &Ray) -> Option<HitRecord<'_>> {
         // Möller-Trumbore
 
         let s1 = Vec3::cross(ray.dir, self.v2);
@@ -144,12 +166,15 @@ impl Hittable for Triangle<'_> {
             return None;
         }
 
+        let normal = Self::interpolate(&self.normal, (u, v)).normalize();
+        let tex_coords = Self::interpolate(&self.tex_coords, (u, v));
+
         Some(HitRecord {
             t: t,
             pos: ray.at(t),
-            normal: self.normal,
-            uv: (0.0, 0.0), // todoo
-            facing: Facing::Front, // todo
+            normal: normal,
+            tex_coords: tex_coords,
+            facing: Facing::Front, //todo
             material: self.material
         })
     }

@@ -171,3 +171,30 @@ impl Vec3 {
         Some(ray_out_perp + ray_out_para)
     }
 }
+
+
+#[derive(Debug, Clone, Copy)]
+pub struct Vec2(pub f64, pub f64);
+
+impl ops::Add for Vec2 {
+    type Output = Self;
+
+    fn add(self, rhs: Self) -> Self {
+        Self(self.0 + rhs.0, self.1 + rhs.1)
+    }
+}
+
+impl<T> ops::Mul<T> for Vec2
+where T: Into<f64> + Copy {
+    type Output = Self;
+
+    fn mul(self, scalar: T) -> Self {
+        Self(self.0 * scalar.into(), self.1 * scalar.into())
+    }
+}
+
+impl Vec2 {
+    pub fn zero() -> Self {
+        Self(0.0, 0.0)
+    }
+}
