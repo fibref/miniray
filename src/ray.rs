@@ -1,18 +1,19 @@
-use crate::vec3::Vec3;
 use crate::hittable::Hittable;
 
+use glam::DVec3;
+
 pub struct Ray {
-    pub origin: Vec3,
-    pub dir: Vec3
+    pub origin: DVec3,
+    pub dir: DVec3
 }
 
 impl Ray {
-    pub fn at(&self, t: f64) -> Vec3 {
+    pub fn at(&self, t: f64) -> DVec3 {
         self.origin + self.dir * t
     }
 
-    pub fn trace(&self, depth: u32, obj_list: &Vec<&dyn Hittable>, background: Vec3) -> Vec3 {
-        if depth == 0 { return Vec3::zero() }
+    pub fn trace(&self, depth: u32, obj_list: &Vec<&dyn Hittable>, background: DVec3) -> DVec3 {
+        if depth == 0 { return DVec3::ZERO }
 
         let obj = obj_list.iter().fold(None, |acc, obj| {
             match (acc, obj.hit(self)) {
@@ -32,7 +33,7 @@ impl Ray {
                     scattered.trace(depth - 1, obj_list, background) * attenuation
                 }
                 else {
-                    Vec3::zero()
+                    DVec3::ZERO
                 };
                 emission + scatter
             },

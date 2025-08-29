@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+glam = "0.30.5"
 image = "0.25.6"
 fastrand = "2.3.0"
 pbr = "1.1.1"

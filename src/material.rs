@@ -1,27 +1,29 @@
 use crate::texture::Texture;
-use crate::vec3::{ Vec3, Vec2 };
 use crate::ray::Ray;
 use crate::hittable::{ HitRecord, Facing };
+use crate::glam_ext::DVec3Ext;
+
+use glam::{ DVec2, DVec3 };
 
 pub trait Material {
-    fn scatter(&self, ray_in: &Ray, hit_record: &HitRecord) -> Option<(Ray, Vec3)>;
-    fn emit(&self) -> Vec3 {
-        Vec3::zero()
+    fn scatter(&self, ray_in: &Ray, hit_record: &HitRecord) -> Option<(Ray, DVec3)>;
+    fn emit(&self) -> DVec3 {
+        DVec3::ZERO
     }
 }
 
 pub struct Lambertian {
-    pub albedo: Vec3
+    pub albedo: DVec3
 }
 
 impl Lambertian {
-    pub fn new(albedo: Vec3) -> Self {
+    pub fn new(albedo: DVec3) -> Self {
         Self { albedo }
     }
 }
 
 impl Material for Lambertian {
-    fn scatter(&self, _ray_in: &Ray, hit_record: &HitRecord) -> Option<(Ray, Vec3)> {
+    fn scatter(&self, _ray_in: &Ray, hit_record: &HitRecord) -> Option<(Ray, DVec3)> {
         if self.albedo.near_zero() {
             return None;
         }
@@ -30,7 +32,7 @@ impl Material for Lambertian {
             Facing::Front => hit_record.normal,
             Facing::Back => -hit_record.normal
         };
-        let mut dir = normal + Vec3::random();
+        let mut dir = normal + DVec3::random();
         // avoid zero vector
         if dir.near_zero() {
             dir = normal;
@@ -41,18 +43,18 @@ impl Material for Lambertian {
 }
 
 pub struct Metal {
-    pub albedo: Vec3,
+    pub albedo: DVec3,
     pub fuzziness: f64
 }
 
 impl Metal {
-    pub fn new(albedo: Vec3, fuzziness: f64) -> Self {
+    pub fn new(albedo: DVec3, fuzziness: f64) -> Self {
         Self { albedo, fuzziness }
     }
 }
 
 impl Material for Metal {
-    fn scatter(&self, ray_in: &Ray, hit_record: &HitRecord) -> Option<(Ray, Vec3)> {
+    fn scatter(&self, ray_in: &Ray, hit_record: &HitRecord) -> Option<(Ray, DVec3)> {
         if self.albedo.near_zero() {
             return None;
         }
@@ -61,9 +63,9 @@ impl Material for Metal {
             Facing::Front => hit_record.normal,
             Facing::Back => -hit_record.normal
         };
-        let dir = ray_in.dir.reflect(normal).normalize() + Vec3::random() * self.fuzziness;
+        let dir = ray_in.dir.reflect(normal).normalize() + DVec3::random() * self.fuzziness;
         let ray_out = Ray { origin: hit_record.pos, dir: dir };
-        if Vec3::dot(dir, normal) > 0.0 {
+        if DVec3::dot(dir, normal) > 0.0 {
             Some((ray_out, self.albedo))
         }
         else {
@@ -91,24 +93,25 @@ impl Dielectric {
 }
 
 impl Material for Dielectric {
-    fn scatter(&self, ray_in: &Ray, hit_record: &HitRecord) -> Option<(Ray, Vec3)> {
-        let ri = match hit_record.facing {
-            Facing::Front => 1.0 / self.refr_index,
-            Facing::Back => self.refr_index
+    fn scatter(&self, ray_in: &Ray, hit_record: &HitRecord) -> Option<(Ray, DVec3)> {
+        let ( normal_in, ri) = match hit_record.facing {
+            Facing::Front => (hit_record.normal, 1.0 / self.refr_index),
+            Facing::Back => (-hit_record.normal, self.refr_index)
         };
 
         let in_dir = ray_in.dir.normalize();
-        let cosine = Vec3::dot(in_dir, hit_record.normal).abs();
+        let cosine = DVec3::dot(in_dir, hit_record.normal).abs();
         
         let reflectance = Dielectric::reflectance_schlick(cosine, ri);
 
         if fastrand::f64() > reflectance {
-            if let Some(refracted) = in_dir.refract(hit_record.normal, ri, hit_record.facing) {
-                return Some((Ray{ origin: hit_record.pos, dir: refracted }, Vec3(1.0, 1.0, 1.0)));
+            let refracted = in_dir.refract(normal_in, ri);
+            if refracted != DVec3::ZERO {
+                return Some((Ray{ origin: hit_record.pos, dir: refracted }, DVec3::ONE));
             }
         }
         let refracted = in_dir.reflect(hit_record.normal);
-        Some((Ray{ origin: hit_record.pos, dir: refracted }, Vec3(1.0, 1.0, 1.0)))
+        Some((Ray{ origin: hit_record.pos, dir: refracted }, DVec3::ONE))
     }
 }
 
@@ -123,8 +126,8 @@ impl<'a> BasicMaterial<'a> {
 }
 
 impl Material for BasicMaterial<'_> {
-    fn scatter(&self, _ray_in: &Ray, hit_record: &HitRecord) -> Option<(Ray, Vec3)> {
-        let Vec2(u, v) = hit_record.tex_coords;
+    fn scatter(&self, _ray_in: &Ray, hit_record: &HitRecord) -> Option<(Ray, DVec3)> {
+        let DVec2{ x: u, y: v } = hit_record.tex_coords;
         let albedo = self.albedo.sample(u, v);
 
         if albedo.near_zero() {
@@ -135,7 +138,7 @@ impl Material for BasicMaterial<'_> {
             Facing::Front => hit_record.normal,
             Facing::Back => -hit_record.normal
         };
-        let mut dir = normal + Vec3::random();
+        let mut dir = normal + DVec3::random();
         // avoid zero vector
         if dir.near_zero() {
             dir = normal;
@@ -146,21 +149,21 @@ impl Material for BasicMaterial<'_> {
 }
 
 pub struct Light {
-    pub color: Vec3
+    pub color: DVec3
 }
 
 impl Light {
-    pub fn new(color: Vec3) -> Self {
+    pub fn new(color: DVec3) -> Self {
         Self { color }
     }
 }
 
 impl Material for Light {
-    fn scatter(&self, _ray_in: &Ray, _hit_record: &HitRecord) -> Option<(Ray, Vec3)> {
+    fn scatter(&self, _ray_in: &Ray, _hit_record: &HitRecord) -> Option<(Ray, DVec3)> {
         None
     }
 
-    fn emit(&self) -> Vec3 {
+    fn emit(&self) -> DVec3 {
         self.color
     }
 }

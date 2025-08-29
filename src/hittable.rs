@@ -1,9 +1,10 @@
 use std::f64::consts::PI;
 use std::ops;
 
-use crate::vec3::{ Vec3, Vec2 };
 use crate::ray::Ray;
 use crate::material::Material;
+
+use glam::{ DVec2, DVec3 };
 
 pub trait Hittable {
     fn hit(&self, ray: &Ray) -> Option<HitRecord<'_>>;
@@ -17,29 +18,29 @@ pub enum Facing {
 
 pub struct HitRecord<'a> {
     pub t: f64,
-    pub pos: Vec3,
+    pub pos: DVec3,
     // normalized
-    pub normal: Vec3,
-    pub tex_coords: Vec2,
+    pub normal: DVec3,
+    pub tex_coords: DVec2,
     pub facing: Facing,
     pub material: &'a dyn Material
 }
 
 pub struct Sphere<'a> {
-    center: Vec3,
+    center: DVec3,
     radius: f64,
     material: &'a dyn Material
 }
 
 impl<'a> Sphere<'a> {
-    pub fn new(center: Vec3, radius: f64, material: &'a dyn Material) -> Self {
+    pub fn new(center: DVec3, radius: f64, material: &'a dyn Material) -> Self {
         Self { center, radius, material }
     }
 
-    pub fn get_uv(pos: Vec3) -> Vec2 {
-        let theta = (-pos.1).acos();
-        let phi = (-pos.2).atan2(pos.0) + PI;
-        Vec2(phi / (2.0 * PI), theta / PI)
+    pub fn get_uv(pos: DVec3) -> DVec2 {
+        let theta = (-pos.y).acos();
+        let phi = (-pos.z).atan2(pos.x) + PI;
+        DVec2::new(phi / (2.0 * PI), theta / PI)
     }
 }
 
@@ -47,7 +48,7 @@ impl Hittable for Sphere<'_> {
     fn hit(&self, ray: &Ray) -> Option<HitRecord<'_>> {
         let oc = self.center - ray.origin;
         let a = ray.dir.length_squared();
-        let h = Vec3::dot(ray.dir, oc); // h = -b / 2
+        let h = DVec3::dot(ray.dir, oc); // h = -b / 2
         let c = oc.length_squared() - self.radius * self.radius;
         let discriminant = h * h - a * c;
         if discriminant < 0.0 {
@@ -91,16 +92,16 @@ impl Hittable for Sphere<'_> {
 
 
 pub struct Triangle<'a> {
-    vertices: [Vec3; 3],
-    normal: [Vec3; 3],
-    tex_coords: [Vec2; 3],
-    v1: Vec3,
-    v2: Vec3,
+    vertices: [DVec3; 3],
+    normal: [DVec3; 3],
+    tex_coords: [DVec2; 3],
+    v1: DVec3,
+    v2: DVec3,
     material: &'a dyn Material
 }
 
 impl<'a> Triangle<'a> {
-    pub fn new(vertices: [Vec3; 3], normal: [Vec3; 3], tex_coords: [Vec2; 3], material: &'a dyn Material) -> Self {
+    pub fn new(vertices: [DVec3; 3], normal: [DVec3; 3], tex_coords: [DVec2; 3], material: &'a dyn Material) -> Self {
         let v1 = vertices[1] - vertices[0];
         let v2 = vertices[2] - vertices[0];
         Self {
@@ -113,13 +114,13 @@ impl<'a> Triangle<'a> {
         }
     }
 
-    pub fn new_with_vertices(vertices: [Vec3; 3], material: &'a dyn Material) -> Self {
+    pub fn new_with_vertices(vertices: [DVec3; 3], material: &'a dyn Material) -> Self {
         let v1 = vertices[1] - vertices[0];
         let v2 = vertices[2] - vertices[0];
         Self {
             vertices,
-            normal: [Vec3::cross(v1, v2).normalize(); 3],
-            tex_coords: [Vec2::zero(); 3],
+            normal: [DVec3::cross(v1, v2).normalize(); 3],
+            tex_coords: [DVec2::ZERO; 3],
             v1,
             v2,
             material
@@ -136,8 +137,8 @@ impl Hittable for Triangle<'_> {
     fn hit(&self, ray: &Ray) -> Option<HitRecord<'_>> {
         // Möller-Trumbore
 
-        let s1 = Vec3::cross(ray.dir, self.v2);
-        let det = Vec3::dot(self.v1, s1);
+        let s1 = DVec3::cross(ray.dir, self.v2);
+        let det = DVec3::dot(self.v1, s1);
 
         // check if the ray is parallel to the triangle
         if det.abs() < 0.0001 {
@@ -148,20 +149,20 @@ impl Hittable for Triangle<'_> {
 
         // calculate and check u
         let to_orig = ray.origin - self.vertices[0];
-        let u = Vec3::dot(to_orig, s1) * inv_det;
+        let u = DVec3::dot(to_orig, s1) * inv_det;
         if u < 0.0 || u > 1.0 {
             return None;
         }
 
         // calculate and check v
-        let s2 = Vec3::cross(to_orig, self.v1);
-        let v = Vec3::dot(ray.dir, s2) * inv_det;
+        let s2 = DVec3::cross(to_orig, self.v1);
+        let v = DVec3::dot(ray.dir, s2) * inv_det;
         if v < 0.0 || u + v > 1.0 {
             return None;
         }
 
         // calculate and check t
-        let t = Vec3::dot(self.v2, s2) * inv_det;
+        let t = DVec3::dot(self.v2, s2) * inv_det;
         if t < 0.0001 {
             return None;
         }

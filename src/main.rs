@@ -1,12 +1,12 @@
-use vec3::{ Vec3, Vec2 };
 use texture::Texture;
 use camera::Camera;
 use hittable::{ Hittable, Sphere, Triangle };
 use material::{ Lambertian, Metal, Dielectric, BasicMaterial, Light };
 
+use glam::{ DVec2, DVec3 };
 use image::ImageReader;
 
-mod vec3;
+mod glam_ext;
 mod texture;
 mod ray;
 mod hittable;
@@ -32,38 +32,38 @@ fn main() {
     // world
     let mut world: Vec<&dyn Hittable> = Vec::new();
     let mat_center = BasicMaterial::new(&earthmap);
-    let mat_ground = Lambertian::new(Vec3(0.8, 0.8, 0.0));
-    let mat_light = Light::new(Vec3(4.0, 4.0, 4.0));
+    let mat_ground = Lambertian::new(DVec3::new(0.8, 0.8, 0.0));
+    let mat_light = Light::new(DVec3::new(4.0, 4.0, 4.0));
     let mat_tri = BasicMaterial::new(&awesomeface);
 
     let center = Sphere::new(
-        Vec3(-0.6, 0.0, -1.2),
+        DVec3::new(-0.6, 0.0, -1.2),
         0.5,
         &mat_center
     );
     let ground = Sphere::new(
-        Vec3(0.0, -100.5, -1.0),
+        DVec3::new(0.0, -100.5, -1.0),
         100.0,
         &mat_ground
     );
     let light_1 = Triangle::new_with_vertices(
-        [Vec3(1.8, -0.2, -0.5), Vec3(1.8, 0.8, -0.5), Vec3(1.2, -0.2, -1.5)],
+        [DVec3::new(1.8, -0.2, -0.5), DVec3::new(1.8, 0.8, -0.5), DVec3::new(1.2, -0.2, -1.5)],
         &mat_light
     );
     let light_2 = Triangle::new_with_vertices(
-        [Vec3(1.2, 0.8, -1.5), Vec3(1.8, 0.8, -0.5), Vec3(1.2, -0.2, -1.5)],
+        [DVec3::new(1.2, 0.8, -1.5), DVec3::new(1.8, 0.8, -0.5), DVec3::new(1.2, -0.2, -1.5)],
         &mat_light
     );
     let tri_1 = Triangle::new(
-        [Vec3(0.5, -0.3, -1.0), Vec3(0.5, -0.3, -0.5), Vec3(-0.2, -0.3, -1.0)],
-        [Vec3(0.0, 1.0, 0.0); 3],
-        [Vec2(1.0, 1.0), Vec2(1.0, 0.0), Vec2(0.0, 1.0)],
+        [DVec3::new(0.5, -0.3, -1.0), DVec3::new(0.5, -0.3, -0.5), DVec3::new(-0.2, -0.3, -1.0)],
+        [DVec3::new(0.0, 1.0, 0.0); 3],
+        [DVec2::new(1.0, 1.0), DVec2::new(1.0, 0.0), DVec2::new(0.0, 1.0)],
         &mat_tri
     );
     let tri_2 = Triangle::new(
-        [Vec3(-0.2, -0.3, -0.5), Vec3(0.5, -0.3, -0.5), Vec3(-0.2, -0.3, -1.0)],
-        [Vec3(0.0, 1.0, 0.0); 3],
-        [Vec2(0.0, 0.0), Vec2(1.0, 0.0), Vec2(0.0, 1.0)],
+        [DVec3::new(-0.2, -0.3, -0.5), DVec3::new(0.5, -0.3, -0.5), DVec3::new(-0.2, -0.3, -1.0)],
+        [DVec3::new(0.0, 1.0, 0.0); 3],
+        [DVec2::new(0.0, 0.0), DVec2::new(1.0, 0.0), DVec2::new(0.0, 1.0)],
         &mat_tri
     );
     world.push(&center);
@@ -77,9 +77,9 @@ fn main() {
     let cam = Camera {
         width: IMG_WIDTH,
         height: IMG_HEIGHT,
-        sample_per_pixel: 400,
+        sample_per_pixel: 30,
         max_depth: 30,
-        background: Vec3(0.03, 0.03, 0.03),
+        background: DVec3::new(0.03, 0.03, 0.03),
         ..Default::default()
     };
     let data = cam.render(&world);
