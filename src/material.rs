@@ -1,9 +1,11 @@
-use crate::texture::Texture;
-use crate::ray::Ray;
-use crate::hittable::{ HitRecord, Facing };
-use crate::glam_ext::DVec3Ext;
+#![allow(dead_code)]
 
-use glam::{ DVec2, DVec3 };
+use crate::glam_ext::DVec3Ext;
+use crate::hittable::{Facing, HitRecord};
+use crate::ray::Ray;
+use crate::texture::Texture;
+
+use glam::{DVec2, DVec3};
 
 pub trait Material {
     fn scatter(&self, ray_in: &Ray, hit_record: &HitRecord) -> Option<(Ray, DVec3)>;
@@ -13,7 +15,7 @@ pub trait Material {
 }
 
 pub struct Lambertian {
-    pub albedo: DVec3
+    pub albedo: DVec3,
 }
 
 impl Lambertian {
@@ -30,21 +32,24 @@ impl Material for Lambertian {
 
         let normal = match hit_record.facing {
             Facing::Front => hit_record.normal,
-            Facing::Back => -hit_record.normal
+            Facing::Back => -hit_record.normal,
         };
         let mut dir = normal + DVec3::random();
         // avoid zero vector
         if dir.near_zero() {
             dir = normal;
         }
-        let ray_out = Ray { origin: hit_record.pos, dir: dir };
+        let ray_out = Ray {
+            origin: hit_record.pos,
+            dir,
+        };
         Some((ray_out, self.albedo))
     }
 }
 
 pub struct Metal {
     pub albedo: DVec3,
-    pub fuzziness: f64
+    pub fuzziness: f64,
 }
 
 impl Metal {
@@ -61,22 +66,23 @@ impl Material for Metal {
 
         let normal = match hit_record.facing {
             Facing::Front => hit_record.normal,
-            Facing::Back => -hit_record.normal
+            Facing::Back => -hit_record.normal,
         };
         let dir = ray_in.dir.reflect(normal).normalize() + DVec3::random() * self.fuzziness;
-        let ray_out = Ray { origin: hit_record.pos, dir: dir };
+        let ray_out = Ray {
+            origin: hit_record.pos,
+            dir,
+        };
         if DVec3::dot(dir, normal) > 0.0 {
             Some((ray_out, self.albedo))
-        }
-        else {
+        } else {
             None
         }
-        
     }
 }
 
 pub struct Dielectric {
-    refr_index: f64
+    refr_index: f64,
 }
 
 impl Dielectric {
@@ -94,29 +100,41 @@ impl Dielectric {
 
 impl Material for Dielectric {
     fn scatter(&self, ray_in: &Ray, hit_record: &HitRecord) -> Option<(Ray, DVec3)> {
-        let ( normal_in, ri) = match hit_record.facing {
+        let (normal_in, ri) = match hit_record.facing {
             Facing::Front => (hit_record.normal, 1.0 / self.refr_index),
-            Facing::Back => (-hit_record.normal, self.refr_index)
+            Facing::Back => (-hit_record.normal, self.refr_index),
         };
 
         let in_dir = ray_in.dir.normalize();
         let cosine = DVec3::dot(in_dir, hit_record.normal).abs();
-        
+
         let reflectance = Dielectric::reflectance_schlick(cosine, ri);
 
         if fastrand::f64() > reflectance {
             let refracted = in_dir.refract(normal_in, ri);
             if refracted != DVec3::ZERO {
-                return Some((Ray{ origin: hit_record.pos, dir: refracted }, DVec3::ONE));
+                return Some((
+                    Ray {
+                        origin: hit_record.pos,
+                        dir: refracted,
+                    },
+                    DVec3::ONE,
+                ));
             }
         }
         let refracted = in_dir.reflect(hit_record.normal);
-        Some((Ray{ origin: hit_record.pos, dir: refracted }, DVec3::ONE))
+        Some((
+            Ray {
+                origin: hit_record.pos,
+                dir: refracted,
+            },
+            DVec3::ONE,
+        ))
     }
 }
 
 pub struct BasicMaterial<'a> {
-    albedo: &'a Texture
+    albedo: &'a Texture,
 }
 
 impl<'a> BasicMaterial<'a> {
@@ -127,7 +145,7 @@ impl<'a> BasicMaterial<'a> {
 
 impl Material for BasicMaterial<'_> {
     fn scatter(&self, _ray_in: &Ray, hit_record: &HitRecord) -> Option<(Ray, DVec3)> {
-        let DVec2{ x: u, y: v } = hit_record.tex_coords;
+        let DVec2 { x: u, y: v } = hit_record.tex_coords;
         let albedo = self.albedo.sample(u, v);
 
         if albedo.near_zero() {
@@ -136,20 +154,23 @@ impl Material for BasicMaterial<'_> {
 
         let normal = match hit_record.facing {
             Facing::Front => hit_record.normal,
-            Facing::Back => -hit_record.normal
+            Facing::Back => -hit_record.normal,
         };
         let mut dir = normal + DVec3::random();
         // avoid zero vector
         if dir.near_zero() {
             dir = normal;
         }
-        let ray_out = Ray { origin: hit_record.pos, dir: dir };
+        let ray_out = Ray {
+            origin: hit_record.pos,
+            dir,
+        };
         Some((ray_out, albedo))
     }
 }
 
 pub struct Light {
-    pub color: DVec3
+    pub color: DVec3,
 }
 
 impl Light {

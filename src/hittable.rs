@@ -1,10 +1,12 @@
+#![allow(dead_code)]
+
 use std::f64::consts::PI;
 use std::ops;
 
-use crate::ray::Ray;
 use crate::material::Material;
+use crate::ray::Ray;
 
-use glam::{ DVec2, DVec3 };
+use glam::{DVec2, DVec3};
 
 pub trait Hittable {
     fn hit(&self, ray: &Ray) -> Option<HitRecord<'_>>;
@@ -13,7 +15,7 @@ pub trait Hittable {
 #[derive(Debug, Clone, Copy)]
 pub enum Facing {
     Front,
-    Back
+    Back,
 }
 
 pub struct HitRecord<'a> {
@@ -23,18 +25,22 @@ pub struct HitRecord<'a> {
     pub normal: DVec3,
     pub tex_coords: DVec2,
     pub facing: Facing,
-    pub material: &'a dyn Material
+    pub material: &'a dyn Material,
 }
 
 pub struct Sphere<'a> {
     center: DVec3,
     radius: f64,
-    material: &'a dyn Material
+    material: &'a dyn Material,
 }
 
 impl<'a> Sphere<'a> {
     pub fn new(center: DVec3, radius: f64, material: &'a dyn Material) -> Self {
-        Self { center, radius, material }
+        Self {
+            center,
+            radius,
+            material,
+        }
     }
 
     pub fn get_uv(pos: DVec3) -> DVec2 {
@@ -68,28 +74,26 @@ impl Hittable for Sphere<'_> {
             let normal = (pos - self.center) / self.radius;
             Some(HitRecord {
                 t: t1,
-                pos: pos,
-                normal: normal,
+                pos,
+                normal,
                 tex_coords: Self::get_uv(normal),
                 facing: Facing::Front,
-                material: self.material
+                material: self.material,
             })
-        }
-        else {
+        } else {
             let pos = ray.at(t2);
             let normal = (pos - self.center) / self.radius;
             Some(HitRecord {
                 t: t2,
-                pos: pos,
-                normal: normal,
+                pos,
+                normal,
                 tex_coords: Self::get_uv(normal),
                 facing: Facing::Back,
-                material: self.material
+                material: self.material,
             })
         }
     }
 }
-
 
 pub struct Triangle<'a> {
     vertices: [DVec3; 3],
@@ -97,11 +101,16 @@ pub struct Triangle<'a> {
     tex_coords: [DVec2; 3],
     v1: DVec3,
     v2: DVec3,
-    material: &'a dyn Material
+    material: &'a dyn Material,
 }
 
 impl<'a> Triangle<'a> {
-    pub fn new(vertices: [DVec3; 3], normal: [DVec3; 3], tex_coords: [DVec2; 3], material: &'a dyn Material) -> Self {
+    pub fn new(
+        vertices: [DVec3; 3],
+        normal: [DVec3; 3],
+        tex_coords: [DVec2; 3],
+        material: &'a dyn Material,
+    ) -> Self {
         let v1 = vertices[1] - vertices[0];
         let v2 = vertices[2] - vertices[0];
         Self {
@@ -110,7 +119,7 @@ impl<'a> Triangle<'a> {
             tex_coords,
             v1,
             v2,
-            material
+            material,
         }
     }
 
@@ -123,12 +132,14 @@ impl<'a> Triangle<'a> {
             tex_coords: [DVec2::ZERO; 3],
             v1,
             v2,
-            material
+            material,
         }
     }
 
     pub fn interpolate<T>(value: &[T; 3], (u, v): (f64, f64)) -> T
-    where T: ops::Add<Output = T> + ops::Mul<f64, Output = T> + Copy {
+    where
+        T: ops::Add<Output = T> + ops::Mul<f64, Output = T> + Copy,
+    {
         value[0] * (1.0 - u - v) + value[1] * u + value[2] * v
     }
 }
@@ -150,7 +161,7 @@ impl Hittable for Triangle<'_> {
         // calculate and check u
         let to_orig = ray.origin - self.vertices[0];
         let u = DVec3::dot(to_orig, s1) * inv_det;
-        if u < 0.0 || u > 1.0 {
+        if !(0.0..=1.0).contains(&u) {
             return None;
         }
 
@@ -171,12 +182,12 @@ impl Hittable for Triangle<'_> {
         let tex_coords = Self::interpolate(&self.tex_coords, (u, v));
 
         Some(HitRecord {
-            t: t,
+            t,
             pos: ray.at(t),
-            normal: normal,
-            tex_coords: tex_coords,
+            normal,
+            tex_coords,
             facing: Facing::Front, //todo
-            material: self.material
+            material: self.material,
         })
     }
 }

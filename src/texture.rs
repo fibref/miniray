@@ -1,31 +1,35 @@
+#![allow(dead_code)]
+
 use glam::DVec3;
 
 pub struct Texture {
-    width: u32,
-    height: u32,
-    buffer: Vec<DVec3>
+    pub width: u32,
+    pub height: u32,
+    buffer: Vec<DVec3>,
 }
 
 impl Texture {
     pub fn new(width: u32, height: u32) -> Self {
         Self {
-            width: width,
-            height: height,
-            buffer: vec![DVec3::ZERO; (width * height) as usize]
+            width,
+            height,
+            buffer: vec![DVec3::ZERO; (width * height) as usize],
         }
     }
 
     pub fn from_rgb_buffer(width: u32, height: u32, buffer: &[u8]) -> Self {
         let mut buf: Vec<DVec3> = Vec::with_capacity((width * height) as usize);
         for i in buffer.chunks_exact(3) {
-            buf.push(
-                Self::to_linear(DVec3::new(i[0] as f64 / 255.0, i[1] as f64 / 255.0, i[2] as f64 / 255.0))
-            )
+            buf.push(Self::to_linear(DVec3::new(
+                i[0] as f64 / 255.0,
+                i[1] as f64 / 255.0,
+                i[2] as f64 / 255.0,
+            )))
         }
         Self {
-            width: width,
-            height: height,
-            buffer: buf
+            width,
+            height,
+            buffer: buf,
         }
     }
 
@@ -61,10 +65,6 @@ impl Texture {
     }
 
     fn to_linear(color: DVec3) -> DVec3 {
-        DVec3::new(
-            color.x.powi(2),
-            color.y.powi(2),
-            color.z.powi(2),
-        )
+        DVec3::new(color.x.powi(2), color.y.powi(2), color.z.powi(2))
     }
 }

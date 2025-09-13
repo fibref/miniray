@@ -1,9 +1,9 @@
-use crate::texture::Texture;
-use crate::ray::Ray;
 use crate::hittable::Hittable;
+use crate::ray::Ray;
+use crate::texture::Texture;
 
-use glam::DVec3;
 use fastrand::Rng;
+use glam::DVec3;
 use pbr::ProgressBar;
 
 pub struct Camera {
@@ -48,7 +48,7 @@ impl Camera {
             Some(up) => {
                 let left = DVec3::cross(up, view_dir).normalize();
                 (up, left)
-            },
+            }
             None => {
                 let left = DVec3::cross(self.world_up, view_dir).normalize();
                 let up = DVec3::cross(view_dir, left).normalize();
@@ -57,17 +57,20 @@ impl Camera {
         };
 
         let width = (self.height as f64 * self.aspect_ratio) as u32;
-        
+
         let viewport_height = (self.fov / 2.0).to_radians().tan() * focal_length * 2.0;
         let viewport_width = viewport_height * width as f64 / self.height as f64;
         let pixel_size = viewport_height / self.height as f64;
-        
+
         let delta_u = -left * pixel_size;
         let delta_v = -up * pixel_size;
-        let viewport_upper_left = view_dir + (left * (viewport_width / 2.0)) + (up * (viewport_height / 2.0)) + delta_u / 2.0 + delta_v / 2.0;
+        let viewport_upper_left = view_dir
+            + (left * (viewport_width / 2.0))
+            + (up * (viewport_height / 2.0))
+            + delta_u / 2.0
+            + delta_v / 2.0;
 
-        // todo
-        let mut data: Texture = Texture::new(1066, 600);
+        let mut data: Texture = Texture::new(width, self.height);
 
         let mut rng = Rng::new();
         let mut offsets: Vec<DVec3> = Vec::with_capacity(self.sample_per_pixel as usize);
@@ -84,14 +87,17 @@ impl Camera {
 
         let mut view_ray = Ray {
             origin: self.pos,
-            dir: viewport_upper_left
+            dir: viewport_upper_left,
         };
         for v in 0..self.height {
             view_ray.dir = viewport_upper_left + delta_v * v as f64;
 
             for u in 0..width {
                 let color = offsets.iter().fold(DVec3::ZERO, |acc, offset| {
-                    let sample_ray = Ray { origin: self.pos, dir: view_ray.dir + *offset };
+                    let sample_ray = Ray {
+                        origin: self.pos,
+                        dir: view_ray.dir + *offset,
+                    };
                     acc + sample_ray.trace(self.max_depth, world, self.background)
                 }) / self.sample_per_pixel as f64;
                 data.set(u, v, color);
