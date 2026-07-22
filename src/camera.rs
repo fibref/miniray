@@ -8,7 +8,7 @@ use pbr::ProgressBar;
 
 pub struct Camera {
     pub pos: DVec3,
-    pub lookat: DVec3,
+    pub forward: DVec3,
     pub up: Option<DVec3>, // camera roll
     pub world_up: DVec3,
 
@@ -24,7 +24,7 @@ impl Default for Camera {
     fn default() -> Self {
         Camera {
             pos: DVec3::ZERO,
-            lookat: -DVec3::Z,
+            forward: -DVec3::Z,
             up: None,
             world_up: DVec3::Y,
 
@@ -41,17 +41,16 @@ impl Default for Camera {
 impl Camera {
     pub fn render(&self, world: &Vec<&dyn Hittable>) -> Texture {
         // init
-        let view_dir = self.lookat - self.pos;
-        let focal_length = view_dir.length();
+        let focal_length = self.forward.length();
 
         let (up, left) = match self.up {
             Some(up) => {
-                let left = DVec3::cross(up, view_dir).normalize();
+                let left = DVec3::cross(up, self.forward).normalize();
                 (up, left)
             }
             None => {
-                let left = DVec3::cross(self.world_up, view_dir).normalize();
-                let up = DVec3::cross(view_dir, left).normalize();
+                let left = DVec3::cross(self.world_up, self.forward).normalize();
+                let up = DVec3::cross(self.forward, left).normalize();
                 (up, left)
             }
         };
@@ -64,7 +63,7 @@ impl Camera {
 
         let delta_u = -left * pixel_size;
         let delta_v = -up * pixel_size;
-        let viewport_upper_left = view_dir
+        let viewport_upper_left = self.forward
             + (left * (viewport_width / 2.0))
             + (up * (viewport_height / 2.0))
             + delta_u / 2.0

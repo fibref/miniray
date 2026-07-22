@@ -64,12 +64,12 @@ impl Scene {
         };
 
         let pos = transform.transform_point3(DVec3::ZERO);
-        let lookat = transform.transform_point3(-DVec3::Z).normalize();
+        let forward = transform.transform_vector3(-DVec3::Z).normalize();
         let up = transform.transform_vector3(DVec3::Y).normalize();
 
         Some(Camera {
             pos,
-            lookat,
+            forward,
             up: Some(up),
             aspect_ratio,
             fov,
