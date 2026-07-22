@@ -1,3 +1,5 @@
+use std::time::Instant;
+
 use hittable::Triangle;
 use material::Light;
 use scene::Scene;
@@ -38,13 +40,16 @@ fn main() {
         &mat_light,
     );
 
-    scene.camera.sample_per_pixel = 400;
+    scene.camera.sample_per_pixel = 50;
 
     let mut list = scene.ref_vec();
     list.push(&light_1);
     list.push(&light_2);
 
+    let start = Instant::now();
     let data = scene.camera.render(&list);
+    let duration = start.elapsed();
+    println!("\nRendered in {:.3}s", duration.as_secs_f32());
 
     image::save_buffer(
         "output.png",
