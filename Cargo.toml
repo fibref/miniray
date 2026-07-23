@@ -8,4 +8,4 @@ glam = "0.33.2"
 image = "0.25.10"
 fastrand = "2.5.0"
 pbr = "1.1.1"
-gltf = "1.4.1"
+gltf = { version = "1.4.1", features = ["KHR_lights_punctual"] }

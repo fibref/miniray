@@ -9,6 +9,7 @@ use crate::ray::Ray;
 use glam::{DVec2, DVec3};
 
 pub trait Hittable {
+    // Return hit information in the forward direction of the ray.
     fn hit(&self, ray: &Ray) -> Option<HitRecord<'_>>;
 }
 

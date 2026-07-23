@@ -169,6 +169,7 @@ impl Material for BasicMaterial<'_> {
     }
 }
 
+/*
 pub struct Light {
     pub color: DVec3,
 }
@@ -188,3 +189,4 @@ impl Material for Light {
         self.color
     }
 }
+*/

@@ -1,14 +1,17 @@
 use crate::camera::Camera;
 use crate::hittable::{Hittable, Triangle};
+use crate::light::{self, Light};
 use crate::material::Lambertian;
 
 use glam::{DMat4, DVec3, Mat4, Vec3};
 use gltf::Buffer;
+use gltf::khr_lights_punctual::Kind::{Directional, Point, Spot};
 use gltf::mesh::Reader;
 use gltf::{Node, buffer::Data};
 
 pub struct Scene {
     pub hittables: Vec<Box<dyn Hittable>>,
+    pub lights: Vec<Box<dyn Light>>,
     pub camera: Camera,
 }
 
@@ -21,6 +24,7 @@ impl Scene {
             .map(|scene| {
                 let mut result = Scene {
                     hittables: Vec::new(),
+                    lights: Vec::new(),
                     camera: Camera::default(),
                 };
 
@@ -32,10 +36,6 @@ impl Scene {
             .collect()
     }
 
-    pub fn ref_vec(&self) -> Vec<&dyn Hittable> {
-        self.hittables.iter().map(|h| h.as_ref()).collect()
-    }
-
     fn process_node(&mut self, node: &Node, parent_transform: DMat4, buffers: &[Data]) {
         let local_transform = Mat4::from_cols_array_2d(&node.transform().matrix()).as_dmat4();
         let transform = parent_transform * local_transform;
@@ -44,12 +44,14 @@ impl Scene {
         if let Some(camera) = Self::get_camera(node, transform) {
             self.camera = camera;
         }
-
         if let Some(mesh) = node.mesh() {
             for primitive in mesh.primitives() {
                 let reader = primitive.reader(|buffer| Some(&buffers[buffer.index()]));
                 self.build_triangles(&reader, transform);
             }
+        }
+        if let Some(light) = Self::get_light(node, transform) {
+            self.lights.push(light);
         }
     }
 
@@ -64,7 +66,7 @@ impl Scene {
         };
 
         let pos = transform.transform_point3(DVec3::ZERO);
-        let forward = transform.transform_vector3(-DVec3::Z).normalize();
+        let forward = transform.transform_vector3(DVec3::NEG_Z).normalize();
         let up = transform.transform_vector3(DVec3::Y).normalize();
 
         Some(Camera {
@@ -110,9 +112,33 @@ impl Scene {
             todo!();
         }
     }
+
+    fn get_light(node: &Node, transform: DMat4) -> Option<Box<dyn Light>> {
+        let light = node.light()?;
+        match light.kind() {
+            Directional => Some(Box::new(light::Directional {
+                color: light.color().map(|x| x as f64).into(),
+                dir: transform.transform_vector3(DVec3::NEG_Z),
+                intensity: light.intensity() as f64,
+            })),
+            Point => Some(Box::new(light::Point {
+                color: light.color().map(|x| x as f64).into(),
+                pos: transform.transform_point3(DVec3::ZERO),
+                intensity: light.intensity() as f64,
+            })),
+            Spot { inner_cone_angle, outer_cone_angle } => Some(Box::new(light::Spot {
+                color: light.color().map(|x| x as f64).into(),
+                pos: transform.transform_point3(DVec3::ZERO),
+                dir: transform.transform_vector3(DVec3::NEG_Z),
+                intensity: light.intensity() as f64,
+                inner_angle: inner_cone_angle as f64,
+                outer_angle: outer_cone_angle as f64,
+            })),
+        }
+    }
 }
 
 // todo
 static _MATERIAL: Lambertian = Lambertian {
-    albedo: DVec3::new(0.8, 0.8, 0.8),
+    albedo: DVec3::new(0.4, 0.4, 0.4),
 };
