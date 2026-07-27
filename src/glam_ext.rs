@@ -1,7 +1,7 @@
 use std::f64::consts::PI;
 
 use fastrand::Rng;
-use glam::DVec3;
+use glam::{DVec3, Vec3};
 
 pub trait DVec3Ext {
     fn near_zero(self) -> bool;
@@ -20,6 +20,17 @@ impl DVec3Ext for DVec3 {
         DVec3::new(sin_phi * theta.cos(), sin_phi * theta.sin(), cos_phi)
     }
 
+    fn near_zero(self) -> bool {
+        let s = 1e-8;
+        self.x.abs() < s && self.y.abs() < s && self.z.abs() < s
+    }
+}
+
+pub trait Vec3Ext {
+    fn near_zero(self) -> bool;
+}
+
+impl Vec3Ext for Vec3 {
     fn near_zero(self) -> bool {
         let s = 1e-8;
         self.x.abs() < s && self.y.abs() < s && self.z.abs() < s

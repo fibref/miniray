@@ -1,8 +1,8 @@
-use std::f64::consts::PI;
+use std::f32::consts::PI;
 
 use crate::{hittable::Hittable, light::Light};
 
-use glam::DVec3;
+use glam::{Vec3, DVec3};
 
 pub struct Ray {
     pub origin: DVec3,
@@ -14,9 +14,9 @@ impl Ray {
         self.origin + self.dir * t
     }
 
-    pub fn trace(&self, depth: u32, obj_list: &[Box<dyn Hittable + '_>], lights: &[Box<dyn Light>], background: DVec3) -> DVec3 {
+    pub fn trace(&self, depth: u32, obj_list: &[Box<dyn Hittable + '_>], lights: &[Box<dyn Light>], background: Vec3) -> Vec3 {
         if depth == 0 {
-            return DVec3::ZERO;
+            return Vec3::ZERO;
         }
 
         let hit_info = obj_list.iter().fold(None, |acc, obj| {
@@ -40,9 +40,9 @@ impl Ray {
                 let scatter = if let Some((scattered, attenuation)) = x.material.scatter(self, &x) {
                     scattered.trace(depth - 1, obj_list, lights, background) * attenuation
                 } else {
-                    DVec3::ZERO
+                    Vec3::ZERO
                 };
-                let lighting = lights.iter().fold(DVec3::ZERO, |acc, light| {
+                let lighting = lights.iter().fold(Vec3::ZERO, |acc, light| {
                     acc + light.evaluate(x.pos, x.normal, obj_list) / PI
                 });
                 emission + scatter + lighting

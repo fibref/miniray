@@ -4,7 +4,7 @@ use crate::ray::Ray;
 use crate::texture::Texture;
 
 use fastrand::Rng;
-use glam::DVec3;
+use glam::{ Vec3, DVec3 };
 use pbr::ProgressBar;
 
 pub struct Camera {
@@ -18,7 +18,7 @@ pub struct Camera {
     pub fov: f64,
     pub sample_per_pixel: u32,
     pub max_depth: u32,
-    pub background: DVec3,
+    pub background: Vec3,
 }
 
 impl Default for Camera {
@@ -34,7 +34,7 @@ impl Default for Camera {
             fov: 90.0,
             sample_per_pixel: 1,
             max_depth: 20,
-            background: DVec3::new(0.01, 0.01, 0.01),
+            background: Vec3::new(0.01, 0.01, 0.01),
         }
     }
 }
@@ -93,13 +93,13 @@ impl Camera {
             view_ray.dir = viewport_upper_left + delta_v * v as f64;
 
             for u in 0..width {
-                let color = offsets.iter().fold(DVec3::ZERO, |acc, offset| {
+                let color = offsets.iter().fold(Vec3::ZERO, |acc, offset| {
                     let sample_ray = Ray {
                         origin: self.pos,
                         dir: view_ray.dir + *offset,
                     };
                     acc + sample_ray.trace(self.max_depth, world, lights, self.background)
-                }) / self.sample_per_pixel as f64;
+                }) / self.sample_per_pixel as f32;
                 data.set(u, v, color);
 
                 view_ray.dir += delta_u;

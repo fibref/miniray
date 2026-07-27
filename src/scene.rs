@@ -117,22 +117,22 @@ impl Scene {
         let light = node.light()?;
         match light.kind() {
             Directional => Some(Box::new(light::Directional {
-                color: light.color().map(|x| x as f64).into(),
+                color: light.color().into(),
                 dir: transform.transform_vector3(DVec3::NEG_Z),
-                intensity: light.intensity() as f64,
+                intensity: light.intensity(),
             })),
             Point => Some(Box::new(light::Point {
-                color: light.color().map(|x| x as f64).into(),
+                color: light.color().into(),
                 pos: transform.transform_point3(DVec3::ZERO),
-                intensity: light.intensity() as f64,
+                intensity: light.intensity(),
             })),
             Spot { inner_cone_angle, outer_cone_angle } => Some(Box::new(light::Spot {
-                color: light.color().map(|x| x as f64).into(),
+                color: light.color().into(),
                 pos: transform.transform_point3(DVec3::ZERO),
                 dir: transform.transform_vector3(DVec3::NEG_Z),
-                intensity: light.intensity() as f64,
-                inner_angle: inner_cone_angle as f64,
-                outer_angle: outer_cone_angle as f64,
+                intensity: light.intensity(),
+                inner_angle: inner_cone_angle,
+                outer_angle: outer_cone_angle,
             })),
         }
     }
@@ -140,5 +140,5 @@ impl Scene {
 
 // todo
 static _MATERIAL: Lambertian = Lambertian {
-    albedo: DVec3::new(0.4, 0.4, 0.4),
+    albedo: Vec3::new(0.4, 0.4, 0.4),
 };
