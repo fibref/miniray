@@ -75,7 +75,7 @@ impl Camera {
         let mut rng = Rng::new();
         let mut offsets: Vec<DVec3> = Vec::with_capacity(self.sample_per_pixel as usize);
         for _ in 0..self.sample_per_pixel {
-            let offset = delta_u * (rng.f64() - 0.5) + delta_v * (rng.f64() - 0.5);
+            let offset = delta_u * (rng.f64_inclusive() - 0.5) + delta_v * (rng.f64_inclusive() - 0.5);
             offsets.push(offset);
         }
 

@@ -240,8 +240,8 @@ impl Material for PbrMaterial<'_> {
             normal + DVec3::random()
         } else {
             // Generate a specular ray
-            let r1 = rng.f64();
-            let r2 = rng.f64();
+            let r1 = rng.f64_inclusive();
+            let r2 = rng.f64_inclusive();
             
             // theta for azimuthal, phi for polar
             let theta = r1 * 2.0 * PI_f64;

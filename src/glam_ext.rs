@@ -13,8 +13,8 @@ impl DVec3Ext for DVec3 {
         let mut rng = Rng::new();
 
         // theta for azimuthal, phi for polar
-        let theta = rng.f64() * 2.0 * PI;
-        let cos_phi = rng.f64() * 2.0 - 1.0;
+        let theta = rng.f64_inclusive() * 2.0 * PI;
+        let cos_phi = rng.f64_inclusive() * 2.0 - 1.0;
         let sin_phi = (1.0 - cos_phi * cos_phi).sqrt();
 
         DVec3::new(sin_phi * theta.cos(), sin_phi * theta.sin(), cos_phi)
