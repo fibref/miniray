@@ -1,5 +1,3 @@
-use std::f32::consts::PI;
-
 use crate::{hittable::Hittable, light::Light};
 
 use glam::{Vec3, DVec3};
@@ -37,13 +35,13 @@ impl Ray {
         match hit_info {
             Some(x) => {
                 let emission = x.material.emit();
-                let scatter = if let Some((scattered, attenuation)) = x.material.scatter(self, &x) {
-                    scattered.trace(depth - 1, obj_list, lights, background) * attenuation
+                let scatter = if let Some((scattered, weight)) = x.material.scatter(-self.dir.normalize(), &x) {
+                    scattered.trace(depth - 1, obj_list, lights, background) * weight
                 } else {
                     Vec3::ZERO
                 };
                 let lighting = lights.iter().fold(Vec3::ZERO, |acc, light| {
-                    acc + light.evaluate(x.pos, x.normal, obj_list) / PI
+                    acc + light.evaluate(x.pos, x.normal, obj_list) * x.material.brdf(-self.dir.normalize(), light.light_dir(x.pos), &x)
                 });
                 emission + scatter + lighting
             }

@@ -5,6 +5,7 @@ use crate::{hittable::Hittable, ray::Ray};
 pub trait Light {
     // normal must be normalized
     fn evaluate(&self, shading_point: DVec3, normal: DVec3, obj_list: &[Box<dyn Hittable + '_>]) -> Vec3;
+    fn light_dir(&self, shading_point: DVec3) -> DVec3;
 }
 
 pub struct Directional {
@@ -25,6 +26,9 @@ impl Light for Directional {
         } else {
             todo!()
         }
+    }
+    fn light_dir(&self, _shading_point: DVec3) -> DVec3 {
+        -self.dir
     }
 }
 
@@ -52,6 +56,10 @@ impl Light for Point {
             self.color * self.intensity / dist2 as f32 * cosine as f32
         }
     }
+    
+    fn light_dir(&self, shading_point: DVec3) -> DVec3 {
+        (self.pos - shading_point).normalize()
+    }
 }
 
 pub struct Spot {
@@ -66,5 +74,9 @@ pub struct Spot {
 impl Light for Spot {
     fn evaluate(&self, shading_point: DVec3, normal: DVec3 ,obj_list: &[Box<dyn Hittable + '_>]) -> Vec3 {
         todo!()
+    }
+
+    fn light_dir(&self, shading_point: DVec3) -> DVec3 {
+        (self.pos - shading_point).normalize()
     }
 }

@@ -22,7 +22,7 @@ pub enum Facing {
 pub struct HitRecord<'a> {
     pub t: f64,
     pub pos: DVec3,
-    // normalized
+    // Must be normalized
     pub normal: DVec3,
     pub tex_coords: DVec2,
     pub facing: Facing,
