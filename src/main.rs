@@ -15,10 +15,7 @@ mod texture;
 fn main() {
     println!("Hello, world!");
 
-    let mut scene = Scene::import("two_boxes.gltf")
-        .into_iter()
-        .next()
-        .unwrap();
+    let mut scene = Scene::import("test-scene.glb");
 
     scene.camera.sample_per_pixel = 30;
 

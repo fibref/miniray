@@ -11,7 +11,6 @@ pub trait Light {
 pub struct Directional {
     pub color: Vec3,
     pub dir: DVec3,
-    pub intensity: f32,
 }
 
 impl Light for Directional {
@@ -35,7 +34,6 @@ impl Light for Directional {
 pub struct Point {
     pub color: Vec3,
     pub pos: DVec3,
-    pub intensity: f32,
 }
 
 impl Light for Point {
@@ -53,7 +51,7 @@ impl Light for Point {
             Vec3::ZERO
         } else {
             let dist2 = ray.dir.length_squared();
-            self.color * self.intensity / dist2 as f32 * cosine as f32
+            self.color / dist2 as f32 * cosine as f32
         }
     }
     
@@ -66,7 +64,6 @@ pub struct Spot {
     pub color: Vec3,
     pub pos: DVec3,
     pub dir: DVec3,
-    pub intensity: f32,
     pub inner_angle: f32,
     pub outer_angle: f32,
 }
