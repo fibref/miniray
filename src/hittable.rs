@@ -2,11 +2,12 @@
 
 use std::f64::consts::PI;
 use std::ops;
+use std::rc::Rc;
 
 use crate::material::Material;
 use crate::ray::Ray;
 
-use glam::{DVec2, DVec3};
+use glam::{DVec2, DVec3, Vec2};
 
 pub trait Hittable {
     // Return hit information in the forward direction of the ray.
@@ -29,14 +30,14 @@ pub struct HitRecord<'a> {
     pub material: &'a dyn Material,
 }
 
-pub struct Sphere<'a> {
+pub struct Sphere {
     center: DVec3,
     radius: f64,
-    material: &'a dyn Material,
+    material: Rc<dyn Material>,
 }
 
-impl<'a> Sphere<'a> {
-    pub fn new(center: DVec3, radius: f64, material: &'a dyn Material) -> Self {
+impl Sphere {
+    pub fn new(center: DVec3, radius: f64, material: Rc<dyn Material>) -> Self {
         Self {
             center,
             radius,
@@ -51,7 +52,7 @@ impl<'a> Sphere<'a> {
     }
 }
 
-impl Hittable for Sphere<'_> {
+impl Hittable for Sphere {
     fn hit(&self, ray: &Ray) -> Option<HitRecord<'_>> {
         let oc = self.center - ray.origin;
         let a = ray.dir.length_squared();
@@ -79,7 +80,7 @@ impl Hittable for Sphere<'_> {
                 normal,
                 tex_coords: Self::get_uv(normal),
                 facing: Facing::Front,
-                material: self.material,
+                material: self.material.as_ref(),
             })
         } else {
             let pos = ray.at(t2);
@@ -90,49 +91,41 @@ impl Hittable for Sphere<'_> {
                 normal,
                 tex_coords: Self::get_uv(normal),
                 facing: Facing::Back,
-                material: self.material,
+                material: self.material.as_ref(),
             })
         }
     }
 }
 
-pub struct Triangle<'a> {
+pub struct Triangle {
     vertices: [DVec3; 3],
     normal: [DVec3; 3],
-    tex_coords: [DVec2; 3],
-    v1: DVec3,
-    v2: DVec3,
-    material: &'a dyn Material,
+    tex_coords: [Vec2; 3],
+    material: Rc<dyn Material>,
 }
 
-impl<'a> Triangle<'a> {
+impl Triangle {
     pub fn new(
         vertices: [DVec3; 3],
         normal: [DVec3; 3],
-        tex_coords: [DVec2; 3],
-        material: &'a dyn Material,
+        tex_coords: [Vec2; 3],
+        material: Rc<dyn Material>,
     ) -> Self {
-        let v1 = vertices[1] - vertices[0];
-        let v2 = vertices[2] - vertices[0];
         Self {
             vertices,
             normal,
             tex_coords,
-            v1,
-            v2,
             material,
         }
     }
 
-    pub fn new_with_vertices(vertices: [DVec3; 3], material: &'a dyn Material) -> Self {
+    pub fn new_with_vertices(vertices: [DVec3; 3], material: Rc<dyn Material>) -> Self {
         let v1 = vertices[1] - vertices[0];
         let v2 = vertices[2] - vertices[0];
         Self {
             vertices,
             normal: [DVec3::cross(v1, v2).normalize(); 3],
-            tex_coords: [DVec2::ZERO; 3],
-            v1,
-            v2,
+            tex_coords: [Vec2::ZERO; 3],
             material,
         }
     }
@@ -145,12 +138,14 @@ impl<'a> Triangle<'a> {
     }
 }
 
-impl Hittable for Triangle<'_> {
+impl Hittable for Triangle {
     fn hit(&self, ray: &Ray) -> Option<HitRecord<'_>> {
         // Möller-Trumbore
+        let v1 = self.vertices[1] - self.vertices[0];
+        let v2 = self.vertices[2] - self.vertices[0];
 
-        let s1 = DVec3::cross(ray.dir, self.v2);
-        let det = DVec3::dot(self.v1, s1);
+        let s1 = DVec3::cross(ray.dir, v2);
+        let det = DVec3::dot(v1, s1);
 
         // check if the ray is parallel to the triangle
         if det.abs() < 0.0001 {
@@ -167,20 +162,20 @@ impl Hittable for Triangle<'_> {
         }
 
         // calculate and check v
-        let s2 = DVec3::cross(to_orig, self.v1);
+        let s2 = DVec3::cross(to_orig, v1);
         let v = DVec3::dot(ray.dir, s2) * inv_det;
         if v < 0.0 || u + v > 1.0 {
             return None;
         }
 
         // calculate and check t
-        let t = DVec3::dot(self.v2, s2) * inv_det;
+        let t = DVec3::dot(v2, s2) * inv_det;
         if t < 0.0001 {
             return None;
         }
 
         let normal = Self::interpolate(&self.normal, (u, v)).normalize();
-        let tex_coords = Self::interpolate(&self.tex_coords, (u, v));
+        let tex_coords = Self::interpolate(&self.tex_coords.map(|x| x.as_dvec2()), (u, v));
 
         Some(HitRecord {
             t,
@@ -188,7 +183,7 @@ impl Hittable for Triangle<'_> {
             normal,
             tex_coords,
             facing: Facing::Front, //todo
-            material: self.material,
+            material: self.material.as_ref(),
         })
     }
 }

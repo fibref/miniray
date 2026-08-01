@@ -1,10 +1,14 @@
+use std::rc::Rc;
+
 use crate::camera::Camera;
 use crate::hittable::{Hittable, Triangle};
 use crate::light::{self, Light};
-use crate::material::Lambertian;
+use crate::material::{Material, PbrMaterial};
+use crate::texture::Texture;
 
-use glam::{DMat4, DVec3, Mat4, Vec3};
-use gltf::Buffer;
+use glam::{DMat4, DVec3, Mat4, Vec2, Vec3};
+use gltf::mesh::Mode::Triangles;
+use gltf::{Buffer, Primitive};
 use gltf::khr_lights_punctual::Kind::{Directional, Point, Spot};
 use gltf::mesh::Reader;
 use gltf::{Node, buffer::Data};
@@ -13,6 +17,7 @@ pub struct Scene {
     pub hittables: Vec<Box<dyn Hittable>>,
     pub lights: Vec<Box<dyn Light>>,
     pub camera: Camera,
+    materials: Vec<Rc<dyn Material>>,
 }
 
 impl Scene {
@@ -26,6 +31,7 @@ impl Scene {
                     hittables: Vec::new(),
                     lights: Vec::new(),
                     camera: Camera::default(),
+                    materials: Vec::new(),
                 };
 
                 for node in scene.nodes() {
@@ -47,7 +53,7 @@ impl Scene {
         if let Some(mesh) = node.mesh() {
             for primitive in mesh.primitives() {
                 let reader = primitive.reader(|buffer| Some(&buffers[buffer.index()]));
-                self.build_triangles(&reader, transform);
+                self.build_triangles(&primitive, &reader, transform);
             }
         }
         if let Some(light) = Self::get_light(node, transform) {
@@ -79,19 +85,39 @@ impl Scene {
         })
     }
 
-    fn build_triangles<'a, 's, F>(&mut self, reader: &Reader<'a, 's, F>, transform: DMat4)
+    fn build_triangles<'a, 's, F>(&mut self, primitive: &Primitive, reader: &Reader<'a, 's, F>, transform: DMat4)
     where
         F: Clone + Fn(Buffer<'a>) -> Option<&'s [u8]>,
     {
-        let positions = match reader.read_positions() {
-            Some(positions) => positions
-                .map(|p| {
-                    let pos_vec4 = transform * Vec3::from_array(p).extend(1.0).as_dvec4();
-                    pos_vec4.truncate()
-                })
-                .collect::<Vec<_>>(),
-            None => todo!(),
-        };
+        if primitive.mode() != Triangles {
+            todo!()
+        }
+        let mut uv_set = 0;
+        let pbr_mat = primitive.material().pbr_metallic_roughness();
+        let metallic_factor = pbr_mat.metallic_factor();
+        let roughness_factor = pbr_mat.roughness_factor();
+
+        if let Some(tex_info) = pbr_mat.metallic_roughness_texture() {
+            uv_set = tex_info.tex_coord();
+            todo!();
+        }
+        let albedo_tex = Texture::plain(Vec3::splat(0.8)); // todo
+        let surface_tex = Texture::plain(Vec3::new(roughness_factor, metallic_factor, 0.0));
+        let material = Rc::new(PbrMaterial::new(albedo_tex, surface_tex));
+        self.materials.push(material.clone());
+        
+        let positions = reader.read_positions()
+            .unwrap()
+            .map(|p| {
+                let pos_vec4 = transform * Vec3::from_array(p).extend(1.0).as_dvec4();
+                pos_vec4.truncate()
+            })
+            .collect::<Vec<_>>();
+        let tex_coords: Vec<Vec2> = reader.read_tex_coords(uv_set)
+            .unwrap()
+            .into_f32()
+            .map(|p| Vec2::new(p[0], p[1]))
+            .collect();
 
         // try using indices
         if let Some(indices) = reader.read_indices() {
@@ -103,7 +129,15 @@ impl Scene {
                     positions[idx[1] as usize],
                     positions[idx[2] as usize],
                 ];
-                let triangle = Triangle::new_with_vertices(vertices, &_MATERIAL);
+                let v1 = vertices[1] - vertices[0];
+                let v2 = vertices[2] - vertices[0];
+                let normal = [DVec3::cross(v1, v2).normalize(); 3];
+                let uvs = [
+                    tex_coords[idx[0] as usize],
+                    tex_coords[idx[1] as usize],
+                    tex_coords[idx[2] as usize],
+                ];
+                let triangle = Triangle::new(vertices, normal, uvs, material.clone());
                 self.hittables.push(Box::new(triangle));
             }
         }
@@ -137,8 +171,3 @@ impl Scene {
         }
     }
 }
-
-// todo
-static _MATERIAL: Lambertian = Lambertian {
-    albedo: Vec3::new(0.4, 0.4, 0.4),
-};

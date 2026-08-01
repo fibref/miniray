@@ -3,7 +3,7 @@
 use std::f32::consts::PI as PI_f32;
 use std::f64::consts::PI as PI_f64;
 
-use crate::glam_ext::{ Vec3Ext, DVec3Ext};
+use crate::glam_ext::{Vec3Ext, DVec3Ext};
 use crate::hittable::{Facing, HitRecord};
 use crate::ray::Ray;
 use crate::texture::Texture;
@@ -145,17 +145,17 @@ impl Material for Dielectric {
     }
 }
 
-pub struct BasicMaterial<'a> {
-    albedo: &'a Texture,
+pub struct BasicMaterial {
+    albedo: Texture,
 }
 
-impl<'a> BasicMaterial<'a> {
-    pub fn new(albedo: &'a Texture) -> Self {
+impl BasicMaterial {
+    pub fn new(albedo: Texture) -> Self {
         Self { albedo }
     }
 }
 
-impl Material for BasicMaterial<'_> {
+impl Material for BasicMaterial {
     fn scatter(&self, _view: DVec3, hit_record: &HitRecord) -> Option<(Ray, Vec3)> {
         let u = hit_record.tex_coords.x;
         let v = hit_record.tex_coords.y;
@@ -182,13 +182,13 @@ impl Material for BasicMaterial<'_> {
     }
 }
 
-pub struct PbrMaterial<'a> {
-    albedo: &'a Texture,
-    surface: &'a Texture,
+pub struct PbrMaterial {
+    albedo: Texture,
+    surface: Texture,
 }
 
-impl<'a> PbrMaterial<'a> {
-    pub fn new(albedo: &'a Texture, surface: &'a Texture) -> Self {
+impl PbrMaterial {
+    pub fn new(albedo: Texture, surface: Texture) -> Self {
         Self { albedo, surface }
     }
 
@@ -219,7 +219,7 @@ impl<'a> PbrMaterial<'a> {
     }
 }
 
-impl Material for PbrMaterial<'_> {
+impl Material for PbrMaterial {
     fn scatter(&self, view: DVec3, hit_record: &HitRecord) -> Option<(Ray, Vec3)> {
         let u = hit_record.tex_coords.x;
         let v = hit_record.tex_coords.y;

@@ -17,7 +17,31 @@ impl Texture {
         }
     }
 
-    pub fn from_rgb_buffer(width: u32, height: u32, buffer: &[u8]) -> Self {
+    pub fn plain(color: Vec3) -> Self {
+        Self {
+            width: 1,
+            height: 1,
+            buffer: vec![color.into(); 1],
+        }
+    }
+
+    pub fn from_linear(width: u32, height: u32, buffer: &[u8]) -> Self {
+        let mut buf: Vec<Vec3A> = Vec::with_capacity((width * height) as usize);
+        for i in buffer.chunks_exact(3) {
+            buf.push(Vec3A::new(
+                i[0] as f32 / 255.0,
+                i[1] as f32 / 255.0,
+                i[2] as f32 / 255.0,
+            ))
+        }
+        Self {
+            width,
+            height,
+            buffer: buf,
+        }
+    }
+
+    pub fn from_srgb(width: u32, height: u32, buffer: &[u8]) -> Self {
         let mut buf: Vec<Vec3A> = Vec::with_capacity((width * height) as usize);
         for i in buffer.chunks_exact(3) {
             buf.push(Self::to_linear(Vec3A::new(
@@ -48,7 +72,7 @@ impl Texture {
     pub fn rgb_buffer(&self) -> Vec<u8> {
         let mut buf: Vec<u8> = Vec::with_capacity((self.width * self.height * 3) as usize);
         for color in &self.buffer {
-            let color_gamma = Self::to_gamma(Self::tone_mapping(*color * 0.001));
+            let color_gamma = Self::to_gamma(Self::tone_mapping(*color * 0.01));
             buf.push((color_gamma.x * 255.0) as u8);
             buf.push((color_gamma.y * 255.0) as u8);
             buf.push((color_gamma.z * 255.0) as u8);
