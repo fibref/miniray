@@ -72,7 +72,7 @@ impl Texture {
     pub fn rgb_buffer(&self) -> Vec<u8> {
         let mut buf: Vec<u8> = Vec::with_capacity((self.width * self.height * 3) as usize);
         for color in &self.buffer {
-            let color_gamma = Self::to_gamma(Self::tone_mapping(*color * 0.01));
+            let color_gamma = Self::to_gamma(Self::tone_mapping(*color * (1.0 / 683.0)));
             buf.push((color_gamma.x * 255.0) as u8);
             buf.push((color_gamma.y * 255.0) as u8);
             buf.push((color_gamma.z * 255.0) as u8);
