@@ -64,15 +64,15 @@ impl Texture {
     pub fn sample(&self, u: f64, v: f64) -> Vec3 {
         let u = u.clamp(0.0, 1.0);
         let v = 1.0 - v.clamp(0.0, 1.0); // flip v to image space
-        let x = (u * self.width as f64) as u32;
-        let y = (v * self.height as f64) as u32;
+        let x = ((u * self.width as f64) as u32).clamp(0, self.width - 1);
+        let y = ((v * self.height as f64) as u32).clamp(0, self.height - 1);
         self.buffer[(y * self.width + x) as usize].into()
     }
 
     pub fn rgb_buffer(&self) -> Vec<u8> {
         let mut buf: Vec<u8> = Vec::with_capacity((self.width * self.height * 3) as usize);
         for color in &self.buffer {
-            let color_gamma = Self::to_gamma(Self::tone_mapping(*color * (1.0 / 683.0)));
+            let color_gamma = Self::to_gamma(Self::tone_mapping(*color * (1.0)));
             buf.push((color_gamma.x * 255.0) as u8);
             buf.push((color_gamma.y * 255.0) as u8);
             buf.push((color_gamma.z * 255.0) as u8);

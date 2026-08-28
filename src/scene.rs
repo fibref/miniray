@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::path::Path;
 use std::rc::Rc;
 
 use crate::camera::Camera;
@@ -9,10 +10,12 @@ use crate::texture::Texture;
 
 use asset_importer::camera::Camera as AiCamera;
 use asset_importer::light::{Light as AiLight, LightType};
+use asset_importer::material::{Material as AiMaterial, TextureInfo, TextureType as AiTextureType};
 use asset_importer::mesh::Mesh as AiMesh;
 use asset_importer::node::Node as AiNode;
 use asset_importer::postprocess::PostProcessSteps;
 use asset_importer::scene::Scene as AiScene;
+use asset_importer::texture::{Texture as AiTexture, TextureDataRef};
 use glam::{DMat4, DVec3, Mat4, Vec2, Vec3};
 
 pub struct Scene {
@@ -30,6 +33,13 @@ impl Scene {
         )
         .unwrap();
 
+        // directory of the model file, for resolving external texture paths
+        let base_dir = Path::new(file_path)
+            .parent()
+            .filter(|p| !p.as_os_str().is_empty())
+            .unwrap_or(Path::new("."))
+            .to_path_buf();
+
         let mut result = Scene {
             hittables: Vec::new(),
             lights: Vec::new(),
@@ -37,7 +47,7 @@ impl Scene {
             materials: Vec::new(),
         };
 
-        result.import_materials(&ai_scene);
+        result.import_materials(&ai_scene, &base_dir);
 
         // build name -> camera/light lookup tables
         let cameras: HashMap<String, AiCamera> = ai_scene
@@ -93,7 +103,7 @@ impl Scene {
         }
     }
 
-    fn import_materials(&mut self, ai_scene: &AiScene) {
+    fn import_materials(&mut self, ai_scene: &AiScene, base_dir: &Path) {
         for ai_mat in ai_scene.materials() {
             let metallic = ai_mat.metallic_factor().unwrap_or(0.0);
             let roughness = ai_mat.roughness_factor().unwrap_or(0.5);
@@ -104,11 +114,120 @@ impl Scene {
                 .or_else(|| ai_mat.diffuse_color().map(Vec3::from))
                 .unwrap();
 
-            let albedo_tex = Texture::plain(albedo); // todo: load actual texture
-            let surface_tex = Texture::plain(Vec3::new(roughness, metallic, 0.0));
+            // albedo texture (sRGB); fall back to the classic diffuse slot so
+            // OBJ/FBX/DAE etc. also get their base color map
+            let albedo_tex = Self::load_texture(
+                ai_scene,
+                ai_mat
+                    .base_color_texture(0)
+                    .or_else(|| ai_mat.texture(AiTextureType::Diffuse, 0)),
+                base_dir,
+            )
+            .map(|(w, h, buf)| Texture::from_srgb(w, h, &buf))
+            .unwrap_or_else(|| Texture::plain(albedo));
+
+            // glTF packs roughness (G) and metallic (B) into one texture; other
+            // formats may provide them as two separate maps or only factors
+            let surface_tex = match Self::load_texture(
+                ai_scene,
+                ai_mat.metallic_roughness_texture(),
+                base_dir,
+            ) {
+                Some((w, h, buf)) => Self::scale_surface(w, h, &buf, roughness, metallic),
+                None => Self::build_surface(
+                    Self::load_texture(ai_scene, ai_mat.roughness_texture(0), base_dir),
+                    Self::load_texture(ai_scene, ai_mat.metallic_texture(0), base_dir),
+                    roughness,
+                    metallic,
+                ),
+            };
+
             let material = Rc::new(PbrMaterial::new(albedo_tex, surface_tex));
             self.materials.push(material);
         }
+    }
+
+    /// Resolve a material texture slot to decoded RGB8 data.
+    /// Handles embedded textures (glTF `*N`, or referenced by name) and
+    /// external files relative to the model.
+    fn load_texture(
+        ai_scene: &AiScene,
+        info: Option<TextureInfo>,
+        base_dir: &Path,
+    ) -> Option<(u32, u32, Vec<u8>)> {
+        let path = info?.path;
+        if let Some(ai_tex) = ai_scene
+            .find_texture_by_filename(&path)
+            .or_else(|| ai_scene.embedded_texture_by_name(&path).ok().flatten())
+        {
+            return Self::decode_ai_texture(&ai_tex);
+        }
+        // external file; join() replaces the path entirely if it is absolute
+        let rgb = image::open(base_dir.join(&path)).ok()?.to_rgb8();
+        let (w, h) = rgb.dimensions();
+        Some((w, h, rgb.into_raw()))
+    }
+
+    /// Decode an embedded texture: uncompressed ARGB8888 texels directly,
+    /// compressed data (PNG/JPEG/...) via the `image` crate.
+    fn decode_ai_texture(ai_tex: &AiTexture) -> Option<(u32, u32, Vec<u8>)> {
+        match ai_tex.data_ref().ok()? {
+            TextureDataRef::Texels(texels) => {
+                let buffer: Vec<u8> = texels
+                    .iter()
+                    .flat_map(|t| {
+                        let (r, g, b, _) = t.to_rgba();
+                        [r, g, b]
+                    })
+                    .collect();
+                Some((ai_tex.width(), ai_tex.height(), buffer))
+            }
+            TextureDataRef::Compressed(bytes) => {
+                let rgb = image::load_from_memory(bytes).ok()?.to_rgb8();
+                let (w, h) = rgb.dimensions();
+                Some((w, h, rgb.into_raw()))
+            }
+        }
+    }
+
+    /// Multiply the roughness/metallic factors into the packed G/B channels.
+    fn scale_surface(width: u32, height: u32, buffer: &[u8], roughness: f32, metallic: f32) -> Texture {
+        if roughness == 1.0 && metallic == 1.0 {
+            return Texture::from_linear(width, height, buffer);
+        }
+        let scaled: Vec<u8> = buffer
+            .chunks_exact(3)
+            .flat_map(|p| [p[0], (p[1] as f32 * roughness) as u8, (p[2] as f32 * metallic) as u8])
+            .collect();
+        Texture::from_linear(width, height, &scaled)
+    }
+
+    /// Combine separate roughness/metallic maps into the packed surface layout
+    /// (R = 0, G = roughness, B = metallic); missing channels use the factors.
+    fn build_surface(
+        rough: Option<(u32, u32, Vec<u8>)>,
+        metal: Option<(u32, u32, Vec<u8>)>,
+        roughness: f32,
+        metallic: f32,
+    ) -> Texture {
+        let (width, height) = match (&rough, &metal) {
+            (Some((w, h, _)), _) => (*w, *h),
+            (_, Some((w, h, _))) => (*w, *h),
+            _ => return Texture::plain(Vec3::new(0.0, roughness, metallic)),
+        };
+        let mut buffer: Vec<u8> = Vec::with_capacity((width * height * 3) as usize);
+        for i in 0..(width * height) as usize {
+            let r = rough
+                .as_ref()
+                .and_then(|(_, _, buf)| buf.get(i * 3 + 1))
+                .map_or((roughness * 255.0) as u8, |v| (*v as f32 * roughness) as u8);
+            let m = metal
+                .as_ref()
+                .and_then(|(_, _, buf)| buf.get(i * 3 + 2))
+                .map_or((metallic * 255.0) as u8, |v| (*v as f32 * metallic) as u8);
+            buffer.extend_from_slice(&[0, r, m]);
+        }
+        Texture::from_linear(width, height, &buffer)
     }
 
     fn build_triangles(&mut self, mesh: &AiMesh, transform: DMat4) {

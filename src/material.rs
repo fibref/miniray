@@ -225,8 +225,9 @@ impl Material for PbrMaterial {
         let v = hit_record.tex_coords.y;
         let albedo = self.albedo.sample(u, v);
         let surface_param = self.surface.sample(u, v);
-        let roughness = surface_param[0];
-        let metallic = surface_param[1];
+        // AO takes channel R
+        let roughness = surface_param[1];
+        let metallic = surface_param[2];
         let alpha = roughness * roughness;
         let normal = match hit_record.facing {
             Facing::Front => hit_record.normal,
@@ -280,8 +281,8 @@ impl Material for PbrMaterial {
         let v = hit_record.tex_coords.y;
         let albedo = self.albedo.sample(u, v);
         let surface_param = self.surface.sample(u, v);
-        let roughness = surface_param[0];
-        let metallic = surface_param[1];
+        let roughness = surface_param[1];
+        let metallic = surface_param[2];
         let alpha = roughness * roughness;
         let normal = match hit_record.facing {
             Facing::Front => hit_record.normal,

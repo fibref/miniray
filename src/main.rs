@@ -15,9 +15,10 @@ mod texture;
 fn main() {
     println!("Hello, world!");
 
-    let mut scene = Scene::import("test-scene.glb");
+    let mut scene = Scene::import("scene.gltf");
 
-    scene.camera.sample_per_pixel = 30;
+    scene.camera.sample_per_pixel = 1;
+    scene.camera.max_depth = 5;
 
     let start = Instant::now();
     let data = scene.camera.render(&scene.hittables, &scene.lights);
