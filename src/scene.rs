@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::path::Path;
-use std::rc::Rc;
+use std::sync::Arc;
 
 use crate::camera::Camera;
 use crate::hittable::{Hittable, Triangle};
@@ -10,7 +10,7 @@ use crate::texture::Texture;
 
 use asset_importer::camera::Camera as AiCamera;
 use asset_importer::light::{Light as AiLight, LightType};
-use asset_importer::material::{Material as AiMaterial, TextureInfo, TextureType as AiTextureType};
+use asset_importer::material::{TextureInfo, TextureType as AiTextureType};
 use asset_importer::mesh::Mesh as AiMesh;
 use asset_importer::node::Node as AiNode;
 use asset_importer::postprocess::PostProcessSteps;
@@ -22,7 +22,7 @@ pub struct Scene {
     pub hittables: Vec<Box<dyn Hittable>>,
     pub lights: Vec<Box<dyn Light>>,
     pub camera: Camera,
-    materials: Vec<Rc<dyn Material>>,
+    materials: Vec<Arc<dyn Material + Send + Sync>>,
 }
 
 impl Scene {
@@ -142,7 +142,7 @@ impl Scene {
                 ),
             };
 
-            let material = Rc::new(PbrMaterial::new(albedo_tex, surface_tex));
+            let material = Arc::new(PbrMaterial::new(albedo_tex, surface_tex));
             self.materials.push(material);
         }
     }

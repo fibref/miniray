@@ -61,6 +61,10 @@ impl Texture {
         self.buffer[(y * self.width + x) as usize] = color.into();
     }
 
+    pub fn lines_mut(&mut self) -> impl Iterator<Item = &mut [Vec3A]> {
+        self.buffer.chunks_exact_mut(self.width as usize)
+    }
+
     pub fn sample(&self, u: f64, v: f64) -> Vec3 {
         let u = u.clamp(0.0, 1.0);
         let v = 1.0 - v.clamp(0.0, 1.0); // flip v to image space

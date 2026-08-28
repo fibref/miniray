@@ -1,3 +1,5 @@
+use std::thread::scope;
+
 use crate::hittable::Hittable;
 use crate::light::Light;
 use crate::ray::Ray;
@@ -85,27 +87,32 @@ impl Camera {
         pb.message("Rendering: ");
         pb.format("[#>-]");
 
-        let mut view_ray = Ray {
-            origin: self.pos,
-            dir: viewport_upper_left,
-        };
-        for v in 0..self.height {
-            view_ray.dir = viewport_upper_left + delta_v * v as f64;
+        scope(|s| {
+            for (v, line) in data.lines_mut().enumerate() {
+                let mut view_ray = Ray {
+                    origin: self.pos,
+                    dir: viewport_upper_left + delta_v * v as f64,
+                };
 
-            for u in 0..width {
-                let color = offsets.iter().fold(Vec3::ZERO, |acc, offset| {
-                    let sample_ray = Ray {
-                        origin: self.pos,
-                        dir: view_ray.dir + *offset,
-                    };
-                    acc + sample_ray.trace(self.max_depth, world, lights, self.background)
-                }) / self.sample_per_pixel as f32;
-                data.set(u, v, color);
+                let offsets = &offsets;
+                s.spawn(move || {
+                    for u in 0..width {
+                        let color = offsets.iter().fold(Vec3::ZERO, |acc, offset| {
+                            let sample_ray = Ray {
+                                origin: self.pos,
+                                dir: view_ray.dir + *offset,
+                            };
+                            acc + sample_ray.trace(self.max_depth, world, lights, self.background)
+                        }) / self.sample_per_pixel as f32;
+                        line[u as usize] = color.into();
 
-                view_ray.dir += delta_u;
+                        view_ray.dir += delta_u;
+                    }
+                });
+                pb.inc();
             }
-            pb.inc();
-        }
+        });
+        
         pb.finish();
         data
     }

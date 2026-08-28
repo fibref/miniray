@@ -2,7 +2,7 @@ use glam::{ Vec3, DVec3 };
 
 use crate::{hittable::Hittable, ray::Ray};
 
-pub trait Light {
+pub trait Light: Sync {
     // normal must be normalized
     fn evaluate(&self, shading_point: DVec3, normal: DVec3, obj_list: &[Box<dyn Hittable + '_>]) -> Vec3;
     fn light_dir(&self, shading_point: DVec3) -> DVec3;

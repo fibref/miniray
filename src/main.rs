@@ -17,8 +17,8 @@ fn main() {
 
     let mut scene = Scene::import("scene.gltf");
 
-    scene.camera.sample_per_pixel = 1;
-    scene.camera.max_depth = 5;
+    scene.camera.sample_per_pixel = 4;
+    scene.camera.max_depth = 4;
 
     let start = Instant::now();
     let data = scene.camera.render(&scene.hittables, &scene.lights);

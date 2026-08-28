@@ -2,14 +2,14 @@
 
 use std::f64::consts::PI;
 use std::ops;
-use std::rc::Rc;
+use std::sync::Arc;
 
 use crate::material::Material;
 use crate::ray::Ray;
 
 use glam::{DVec2, DVec3, Vec2};
 
-pub trait Hittable {
+pub trait Hittable: Sync {
     // Return hit information in the forward direction of the ray.
     fn hit(&self, ray: &Ray) -> Option<HitRecord<'_>>;
 }
@@ -33,11 +33,11 @@ pub struct HitRecord<'a> {
 pub struct Sphere {
     center: DVec3,
     radius: f64,
-    material: Rc<dyn Material>,
+    material: Arc<dyn Material + Send + Sync>,
 }
 
 impl Sphere {
-    pub fn new(center: DVec3, radius: f64, material: Rc<dyn Material>) -> Self {
+    pub fn new(center: DVec3, radius: f64, material: Arc<dyn Material + Send + Sync>) -> Self {
         Self {
             center,
             radius,
@@ -101,7 +101,7 @@ pub struct Triangle {
     vertices: [DVec3; 3],
     normal: [DVec3; 3],
     tex_coords: [Vec2; 3],
-    material: Rc<dyn Material>,
+    material: Arc<dyn Material + Send + Sync>,
 }
 
 impl Triangle {
@@ -109,7 +109,7 @@ impl Triangle {
         vertices: [DVec3; 3],
         normal: [DVec3; 3],
         tex_coords: [Vec2; 3],
-        material: Rc<dyn Material>,
+        material: Arc<dyn Material + Send + Sync>,
     ) -> Self {
         Self {
             vertices,
@@ -119,7 +119,7 @@ impl Triangle {
         }
     }
 
-    pub fn new_with_vertices(vertices: [DVec3; 3], material: Rc<dyn Material>) -> Self {
+    pub fn new_with_vertices(vertices: [DVec3; 3], material: Arc<dyn Material + Send + Sync>) -> Self {
         let v1 = vertices[1] - vertices[0];
         let v2 = vertices[2] - vertices[0];
         Self {
