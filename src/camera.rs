@@ -75,11 +75,6 @@ impl Camera {
         let mut data: Texture = Texture::new(width, self.height);
 
         let mut rng = Rng::new();
-        let mut offsets: Vec<DVec3> = Vec::with_capacity(self.sample_per_pixel as usize);
-        for _ in 0..self.sample_per_pixel {
-            let offset = delta_u * (rng.f64_inclusive() - 0.5) + delta_v * (rng.f64_inclusive() - 0.5);
-            offsets.push(offset);
-        }
 
         let mut pb = ProgressBar::new(self.height as u64);
         pb.show_counter = false;
@@ -94,16 +89,19 @@ impl Camera {
                     dir: viewport_upper_left + delta_v * v as f64,
                 };
 
-                let offsets = &offsets;
+                let mut rng = rng.fork();
                 s.spawn(move || {
                     for u in 0..width {
-                        let color = offsets.iter().fold(Vec3::ZERO, |acc, offset| {
+                        let mut color = Vec3::ZERO;
+                        for _ in 0..self.sample_per_pixel {
+                            let offset = delta_u * (rng.f64_inclusive() - 0.5) + delta_v * (rng.f64_inclusive() - 0.5);
                             let sample_ray = Ray {
                                 origin: self.pos,
-                                dir: view_ray.dir + *offset,
+                                dir: view_ray.dir + offset,
                             };
-                            acc + sample_ray.trace(self.max_depth, world, lights, self.background)
-                        }) / self.sample_per_pixel as f32;
+                            color += sample_ray.trace(self.max_depth, world, lights, self.background);
+                        }
+                        color /= self.sample_per_pixel as f32;
                         line[u as usize] = color.into();
 
                         view_ray.dir += delta_u;
