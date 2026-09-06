@@ -1,10 +1,11 @@
 use std::thread::scope;
 
-use crate::hittable::Hittable;
+use crate::hittable::{BVHNode, Dummy, Hittable};
 use crate::light::Light;
 use crate::ray::Ray;
 use crate::texture::Texture;
 
+use dyn_clone::clone_box;
 use fastrand::Rng;
 use glam::{ Vec3, DVec3 };
 use pbr::ProgressBar;
@@ -72,6 +73,15 @@ impl Camera {
             + delta_u / 2.0
             + delta_v / 2.0;
 
+        let world_bvh: Box<dyn Hittable> = Box::new(BVHNode::build(world.iter().map(|obj| {
+            let obj = clone_box(&**obj);
+            BVHNode {
+                aabb: obj.bounding_box(),
+                left: obj.clone(),
+                right: Box::new(Dummy),
+            }
+        }).collect()));
+
         let mut data: Texture = Texture::new(width, self.height);
 
         let mut rng = Rng::new();
@@ -90,6 +100,7 @@ impl Camera {
                 };
 
                 let mut rng = rng.fork();
+                let world_bvh = &world_bvh;
                 s.spawn(move || {
                     for u in 0..width {
                         let mut color = Vec3::ZERO;
@@ -99,7 +110,7 @@ impl Camera {
                                 origin: self.pos,
                                 dir: view_ray.dir + offset,
                             };
-                            color += sample_ray.trace(self.max_depth, world, lights, self.background);
+                            color += sample_ray.trace(self.max_depth, world_bvh, lights, self.background);
                         }
                         color /= self.sample_per_pixel as f32;
                         line[u as usize] = color.into();

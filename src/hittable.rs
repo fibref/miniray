@@ -7,12 +7,15 @@ use std::sync::Arc;
 use crate::material::Material;
 use crate::ray::Ray;
 
+use dyn_clone::DynClone;
 use glam::{DVec2, DVec3, Vec2};
 
-pub trait Hittable: Sync {
+pub trait Hittable: Sync + DynClone {
     // Return hit information in the forward direction of the ray.
     fn hit(&self, ray: &Ray) -> Option<HitRecord<'_>>;
+    fn bounding_box(&self) -> AABB;
 }
+dyn_clone::clone_trait_object!(Hittable);
 
 #[derive(Debug, Clone, Copy)]
 pub enum Facing {
@@ -30,6 +33,107 @@ pub struct HitRecord<'a> {
     pub material: &'a dyn Material,
 }
 
+#[derive(Debug, Clone, Copy)]
+pub struct AABB {
+    min: DVec3,
+    max: DVec3,
+}
+
+impl AABB {
+    pub fn intersect(&self, ray: &Ray) -> bool {
+        let inv_dir = DVec3::ONE / ray.dir;
+        let t1 = (self.min - ray.origin) * inv_dir;
+        let t2 = (self.max - ray.origin) * inv_dir;
+
+        let t_enter = DVec3::min(t1, t2);
+        let t_exit = DVec3::max(t1, t2);
+
+        let t_enter_max = t_enter.max_element();
+        let t_exit_min = t_exit.min_element();
+
+        t_exit_min >= t_enter_max && t_exit_min >= 0.0
+    }
+
+    pub fn from_multiple(aabbs: &[AABB]) -> Self {
+        let mut min = DVec3::splat(f64::INFINITY);
+        let mut max = DVec3::splat(f64::NEG_INFINITY);
+
+        for aabb in aabbs {
+            min = min.min(aabb.min);
+            max = max.max(aabb.max);
+        }
+
+        AABB { min, max }
+    }
+
+    pub fn center(&self) -> DVec3 {
+        (self.min + self.max) * 0.5
+    }
+}
+
+#[derive(Clone)]
+pub struct BVHNode<'a> {
+    pub aabb: AABB,
+    pub left: Box<dyn Hittable + 'a>,
+    pub right: Box<dyn Hittable + 'a>,
+}
+
+impl<'a> BVHNode<'a> {
+    pub fn build(nodes: Vec<BVHNode<'a>>) -> Self {
+        if nodes.len() == 1 {
+            return nodes.into_iter().next().unwrap();
+        }
+        let aabb = AABB::from_multiple(&nodes.iter().map(|n| n.aabb).collect::<Vec<_>>());
+        let axis = fastrand::usize(0..3);
+
+        let mut nodes_left = nodes;
+        nodes_left.sort_by(|a, b| {
+            let a_center = a.aabb.center();
+            let b_center = b.aabb.center();
+            a_center[axis]
+                .partial_cmp(&b_center[axis])
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
+        let nodes_right = nodes_left.split_off(nodes_left.len() / 2);
+
+        Self {
+            aabb,
+            left: Box::new(Self::build(nodes_left)),
+            right: Box::new(Self::build(nodes_right)),
+        }
+    }
+}
+
+impl Hittable for BVHNode<'_> {
+    fn hit(&self, ray: &Ray) -> Option<HitRecord<'_>> {
+        if !self.aabb.intersect(ray) {
+            return None;
+        }
+
+        let left_hit = self.left.hit(ray);
+        let right_hit = self.right.hit(ray);
+
+        // pick the closest hit
+        match (left_hit, right_hit) {
+            (Some(left), Some(right)) => {
+                if left.t < right.t {
+                    Some(left)
+                } else {
+                    Some(right)
+                }
+            }
+            (Some(left), None) => Some(left),
+            (None, Some(right)) => Some(right),
+            (None, None) => None,
+        }
+    }
+
+    fn bounding_box(&self) -> AABB {
+        self.aabb
+    }
+}
+
+#[derive(Clone)]
 pub struct Sphere {
     center: DVec3,
     radius: f64,
@@ -95,8 +199,15 @@ impl Hittable for Sphere {
             })
         }
     }
+
+    fn bounding_box(&self) -> AABB {
+        let min = self.center - DVec3::splat(self.radius);
+        let max = self.center + DVec3::splat(self.radius);
+        AABB { min, max }
+    }
 }
 
+#[derive(Clone)]
 pub struct Triangle {
     vertices: [DVec3; 3],
     normal: [DVec3; 3],
@@ -186,4 +297,30 @@ impl Hittable for Triangle {
             material: self.material.as_ref(),
         })
     }
+
+    fn bounding_box(&self) -> AABB {
+        let min = self.vertices[0]
+            .min(self.vertices[1])
+            .min(self.vertices[2]);
+        let max = self.vertices[0]
+            .max(self.vertices[1])
+            .max(self.vertices[2]);
+        AABB { min, max }
+    }
+}
+
+#[derive(Clone)]
+pub struct Dummy;
+impl Hittable for Dummy {
+    fn hit(&self, _ray: &Ray) -> Option<HitRecord<'_>> {
+        None
+    }
+
+    fn bounding_box(&self) -> AABB {
+        AABB {
+            min: DVec3::ZERO,
+            max: DVec3::ZERO,
+        }
+    }
+    
 }

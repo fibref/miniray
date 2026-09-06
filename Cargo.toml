@@ -9,3 +9,4 @@ image = "0.25.10"
 fastrand = "2.5.0"
 pbr = "1.1.1"
 asset-importer = { version = "0.8.0", features = ["glam"] }
+dyn-clone = "1.0.20"

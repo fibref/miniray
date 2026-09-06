@@ -4,7 +4,7 @@ use crate::{hittable::Hittable, ray::Ray};
 
 pub trait Light: Sync {
     // normal must be normalized
-    fn evaluate(&self, shading_point: DVec3, normal: DVec3, obj_list: &[Box<dyn Hittable + '_>]) -> Vec3;
+    fn evaluate(&self, shading_point: DVec3, normal: DVec3, hittable: &Box<dyn Hittable + '_>) -> Vec3;
     fn light_dir(&self, shading_point: DVec3) -> DVec3;
 }
 
@@ -14,12 +14,12 @@ pub struct Directional {
 }
 
 impl Light for Directional {
-    fn evaluate(&self, shading_point: DVec3, normal: DVec3, obj_list: &[Box<dyn Hittable + '_>]) -> Vec3 {
+    fn evaluate(&self, shading_point: DVec3, normal: DVec3, hittable: &Box<dyn Hittable + '_>) -> Vec3 {
         let ray = Ray {
             origin: shading_point,
             dir: -self.dir,
         };
-        let blocked = obj_list.iter().any(|obj| obj.hit(&ray).is_some());
+        let blocked = hittable.hit(&ray).is_some();
         if blocked {
             Vec3::ZERO
         } else {
@@ -37,15 +37,13 @@ pub struct Point {
 }
 
 impl Light for Point {
-    fn evaluate(&self, shading_point: DVec3, normal: DVec3, obj_list: &[Box<dyn Hittable + '_>]) -> Vec3 {
+    fn evaluate(&self, shading_point: DVec3, normal: DVec3, hittable: &Box<dyn Hittable + '_>) -> Vec3 {
         let ray = Ray {
             origin: shading_point,
             dir: self.pos - shading_point,
         };
         let cosine = DVec3::dot(ray.dir.normalize(), normal);
-        let blocked = obj_list
-            .iter()
-            .any(|obj| obj.hit(&ray).is_some_and(|hit_record| hit_record.t < 1.0))
+        let blocked = hittable.hit(&ray).is_some_and(|hit_record| hit_record.t < 1.0)
             || cosine <= 0.0;
         if blocked {
             Vec3::ZERO
@@ -69,7 +67,7 @@ pub struct Spot {
 }
 
 impl Light for Spot {
-    fn evaluate(&self, shading_point: DVec3, normal: DVec3 ,obj_list: &[Box<dyn Hittable + '_>]) -> Vec3 {
+    fn evaluate(&self, shading_point: DVec3, normal: DVec3 ,hittable: &Box<dyn Hittable + '_>) -> Vec3 {
         todo!()
     }
 
