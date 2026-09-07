@@ -1,3 +1,4 @@
+use std::sync::Mutex;
 use std::thread::scope;
 
 use crate::hittable::{BVHNode, Dummy, Hittable};
@@ -92,6 +93,8 @@ impl Camera {
         pb.message("Rendering: ");
         pb.format("[#>-]");
 
+        let pb = Mutex::new(pb);
+
         scope(|s| {
             for (v, line) in data.lines_mut().enumerate() {
                 let mut view_ray = Ray {
@@ -101,6 +104,7 @@ impl Camera {
 
                 let mut rng = rng.fork();
                 let world_bvh = &world_bvh;
+                let pb = &pb;
                 s.spawn(move || {
                     for u in 0..width {
                         let mut color = Vec3::ZERO;
@@ -117,12 +121,12 @@ impl Camera {
 
                         view_ray.dir += delta_u;
                     }
+                    pb.lock().unwrap().inc();
                 });
-                pb.inc();
             }
         });
         
-        pb.finish();
+        pb.into_inner().unwrap().finish();
         data
     }
 }
