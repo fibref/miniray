@@ -12,7 +12,7 @@ impl Ray {
         self.origin + self.dir * t
     }
 
-    pub fn trace(&self, depth: u32, hittable: &Box<dyn Hittable + '_>, lights: &[Box<dyn Light>], background: Vec3) -> Vec3 {
+    pub fn trace(&self, depth: u32, hittable: &dyn Hittable, lights: &[Box<dyn Light>], background: Vec3) -> Vec3 {
         if depth == 0 {
             return Vec3::ZERO;
         }

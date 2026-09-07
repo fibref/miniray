@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 use std::path::Path;
-use std::sync::Arc;
 
 use crate::camera::Camera;
 use crate::hittable::{Hittable, Triangle};
@@ -22,7 +21,9 @@ pub struct Scene {
     pub hittables: Vec<Box<dyn Hittable>>,
     pub lights: Vec<Box<dyn Light>>,
     pub camera: Camera,
-    materials: Vec<Arc<dyn Material + Send + Sync>>,
+    // reference to the materials, which are leaked to have a 'static lifetime
+    // this is to avoid self-referential structures
+    materials: Vec<&'static dyn Material>,
 }
 
 impl Scene {
@@ -142,7 +143,9 @@ impl Scene {
                 ),
             };
 
-            let material = Arc::new(PbrMaterial::new(albedo_tex, surface_tex));
+            let material = Box::new(PbrMaterial::new(albedo_tex, surface_tex));
+            // leak is ok because the material will live the entire lifetime of the program
+            let material: &'static dyn Material = Box::leak(material);
             self.materials.push(material);
         }
     }
@@ -231,7 +234,7 @@ impl Scene {
     }
 
     fn build_triangles(&mut self, mesh: &AiMesh, transform: DMat4) {
-        let material = self.materials[mesh.material_index()].clone();
+        let material = self.materials[mesh.material_index()];
 
         let positions: Vec<DVec3> = mesh
             .vertices_iter()
@@ -279,7 +282,7 @@ impl Scene {
                     tex_coords[tri[2] as usize],
                 ]
             };
-            let triangle = Triangle::new(vertices, normal, uvs, material.clone());
+            let triangle = Triangle::new(vertices, normal, uvs, material);
             self.hittables.push(Box::new(triangle));
         }
     }

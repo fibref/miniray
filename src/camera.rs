@@ -74,14 +74,14 @@ impl Camera {
             + delta_u / 2.0
             + delta_v / 2.0;
 
-        let world_bvh: Box<dyn Hittable> = Box::new(BVHNode::build(world.iter().map(|obj| {
+        let world_bvh = BVHNode::build(world.iter().map(|obj| {
             let obj = clone_box(&**obj);
             BVHNode {
                 aabb: obj.bounding_box(),
                 left: obj.clone(),
                 right: Box::new(Dummy),
             }
-        }).collect()));
+        }).collect());
 
         let mut data: Texture = Texture::new(width, self.height);
 

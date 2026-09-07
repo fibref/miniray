@@ -2,7 +2,6 @@
 
 use std::f64::consts::PI;
 use std::ops;
-use std::sync::Arc;
 
 use crate::material::Material;
 use crate::ray::Ray;
@@ -137,11 +136,11 @@ impl Hittable for BVHNode<'_> {
 pub struct Sphere {
     center: DVec3,
     radius: f64,
-    material: Arc<dyn Material + Send + Sync>,
+    material: &'static dyn Material,
 }
 
 impl Sphere {
-    pub fn new(center: DVec3, radius: f64, material: Arc<dyn Material + Send + Sync>) -> Self {
+    pub fn new(center: DVec3, radius: f64, material: &'static dyn Material) -> Self {
         Self {
             center,
             radius,
@@ -184,7 +183,7 @@ impl Hittable for Sphere {
                 normal,
                 tex_coords: Self::get_uv(normal),
                 facing: Facing::Front,
-                material: self.material.as_ref(),
+                material: self.material,
             })
         } else {
             let pos = ray.at(t2);
@@ -195,7 +194,7 @@ impl Hittable for Sphere {
                 normal,
                 tex_coords: Self::get_uv(normal),
                 facing: Facing::Back,
-                material: self.material.as_ref(),
+                material: self.material,
             })
         }
     }
@@ -212,7 +211,7 @@ pub struct Triangle {
     vertices: [DVec3; 3],
     normal: [DVec3; 3],
     tex_coords: [Vec2; 3],
-    material: Arc<dyn Material + Send + Sync>,
+    material: &'static dyn Material,
 }
 
 impl Triangle {
@@ -220,7 +219,7 @@ impl Triangle {
         vertices: [DVec3; 3],
         normal: [DVec3; 3],
         tex_coords: [Vec2; 3],
-        material: Arc<dyn Material + Send + Sync>,
+        material: &'static dyn Material,
     ) -> Self {
         Self {
             vertices,
@@ -230,7 +229,7 @@ impl Triangle {
         }
     }
 
-    pub fn new_with_vertices(vertices: [DVec3; 3], material: Arc<dyn Material + Send + Sync>) -> Self {
+    pub fn new_with_vertices(vertices: [DVec3; 3], material: &'static dyn Material) -> Self {
         let v1 = vertices[1] - vertices[0];
         let v2 = vertices[2] - vertices[0];
         Self {
@@ -294,7 +293,7 @@ impl Hittable for Triangle {
             normal,
             tex_coords,
             facing: Facing::Front, //todo
-            material: self.material.as_ref(),
+            material: self.material,
         })
     }
 

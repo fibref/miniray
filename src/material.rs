@@ -11,14 +11,14 @@ use crate::texture::Texture;
 use fastrand::Rng;
 use glam::{DVec3, Vec3};
 
-pub trait Material {
+pub trait Material: Sync {
     // view is required to be normalized
     fn scatter(&self, view: DVec3, hit_record: &HitRecord) -> Option<(Ray, Vec3)>;
     fn emit(&self) -> Vec3 {
         Vec3::ZERO
     }
-    fn brdf(&self, view: DVec3, light: DVec3, hit_record: &HitRecord) -> Vec3 {
-        todo!()
+    fn brdf(&self, _view: DVec3, _light: DVec3, _hit_record: &HitRecord) -> Vec3 {
+        panic!();
     }
 }
 
