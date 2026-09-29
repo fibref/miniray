@@ -9,7 +9,7 @@ use crate::ray::Ray;
 use crate::texture::Texture;
 
 use fastrand::Rng;
-use glam::{DVec3, Vec3};
+use glam::{DMat3, DVec3, Vec3};
 
 pub trait Material: Sync {
     // view is required to be normalized
@@ -226,7 +226,7 @@ impl Material for PbrMaterial {
         let albedo = self.albedo.sample(u, v);
         let surface_param = self.surface.sample(u, v);
         // AO takes channel R
-        let roughness = surface_param[1];
+        let roughness = surface_param[1].max(0.04);
         let metallic = surface_param[2];
         let alpha = roughness * roughness;
         let normal = match hit_record.facing {
@@ -238,7 +238,7 @@ impl Material for PbrMaterial {
         let specular_approx = 0.2 + 0.8 * metallic;
         let scattered = if rng.f32_inclusive() > specular_approx {
             // Generate a diffuse ray
-            normal + DVec3::random()
+            (normal + DVec3::random()).normalize()
         } else {
             // Generate a specular ray
             let r1 = rng.f64_inclusive();
@@ -248,7 +248,16 @@ impl Material for PbrMaterial {
             let theta = r1 * 2.0 * PI_f64;
             let cos_phi = ((1.0 - r2) / (r2 * (alpha * alpha - 1.0) as f64 + 1.0)).sqrt();
             let sin_phi = (1.0 - cos_phi * cos_phi).sqrt();
-            DVec3::new(sin_phi * theta.cos(), sin_phi * theta.sin(), cos_phi)
+            let local_h = DVec3::new(sin_phi * theta.cos(), sin_phi * theta.sin(), cos_phi);
+            
+            let tangent = if normal.x.abs() > normal.z.abs() {
+                DVec3::new(-normal.y, normal.x, 0.0).normalize()
+            } else {
+                DVec3::new(0.0, -normal.z, normal.y).normalize()
+            };
+            let bitangent = DVec3::cross(normal, tangent);
+            let h = DMat3::from_cols(tangent, bitangent, normal) * local_h;
+            -view.reflect(h)
         };
         let ndots = DVec3::dot(scattered, normal);
         if ndots <= 0.0 {
@@ -266,7 +275,14 @@ impl Material for PbrMaterial {
         let k_diff = (Vec3::splat(1.0) - fresnel) * (1.0 - metallic);
 
         let brdf = k_diff * albedo / PI_f32 + d_ggx * g_ggx * fresnel / (4.0 * DVec3::dot(view, normal) as f32 * DVec3::dot(scattered, normal) as f32);
-        let weight = brdf * ndots as f32 / (pdf_diff + pdf_spec);
+        
+        let p_spec = specular_approx;
+        let p_diff = 1.0 - p_spec;
+        let pdf = p_diff * pdf_diff + p_spec * pdf_spec;
+        if pdf <= 0.0 {
+            return None;
+        }
+        let weight = brdf * ndots as f32 / pdf;
 
         let ray_out = Ray {
             origin: hit_record.pos,
@@ -281,7 +297,7 @@ impl Material for PbrMaterial {
         let v = hit_record.tex_coords.y;
         let albedo = self.albedo.sample(u, v);
         let surface_param = self.surface.sample(u, v);
-        let roughness = surface_param[1];
+        let roughness = surface_param[1].max(0.04);
         let metallic = surface_param[2];
         let alpha = roughness * roughness;
         let normal = match hit_record.facing {
