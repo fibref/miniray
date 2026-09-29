@@ -95,38 +95,63 @@ impl Camera {
 
         let pb = Mutex::new(pb);
 
-        scope(|s| {
-            for (v, line) in data.lines_mut().enumerate() {
-                let mut view_ray = Ray {
-                    origin: self.pos,
-                    dir: viewport_upper_left + delta_v * v as f64,
-                };
+        let thread_count = std::thread::available_parallelism()
+            .map(|n| n.get())
+            .unwrap_or(16);
+        let lines = Mutex::new(data.lines_mut().enumerate());
 
+        scope(|s| {
+            for _ in 0..thread_count {
                 let mut rng = rng.fork();
                 let world_bvh = &world_bvh;
                 let pb = &pb;
+                let lines = &lines;
                 s.spawn(move || {
-                    for u in 0..width {
-                        let mut color = Vec3::ZERO;
-                        for _ in 0..self.sample_per_pixel {
-                            let offset = delta_u * (rng.f64_inclusive() - 0.5) + delta_v * (rng.f64_inclusive() - 0.5);
-                            let sample_ray = Ray {
-                                origin: self.pos,
-                                dir: view_ray.dir + offset,
-                            };
-                            color += sample_ray.trace(self.max_depth, world_bvh, lights, self.background);
-                        }
-                        color /= self.sample_per_pixel as f32;
-                        line[u as usize] = color.into();
+                    loop {
+                        let (v, line) = {
+                            let mut lock = lines.lock().unwrap();
+                            // pull next line
+                            match lock.next() {
+                                Some(item) => item,
+                                None => break,
+                            }
+                        };
 
-                        view_ray.dir += delta_u;
+                        let mut view_ray = Ray {
+                            origin: self.pos,
+                            dir: viewport_upper_left + delta_v * v as f64,
+                        };
+
+                        for u in 0..width {
+                            let mut color = Vec3::ZERO;
+                            for _ in 0..self.sample_per_pixel {
+                                let offset = delta_u * (rng.f64_inclusive() - 0.5)
+                                    + delta_v * (rng.f64_inclusive() - 0.5);
+                                let sample_ray = Ray {
+                                    origin: self.pos,
+                                    dir: view_ray.dir + offset,
+                                };
+                                color += sample_ray.trace(
+                                    self.max_depth,
+                                    world_bvh,
+                                    lights,
+                                    self.background,
+                                );
+                            }
+                            color /= self.sample_per_pixel as f32;
+                            line[u as usize] = color.into();
+
+                            view_ray.dir += delta_u;
+                        }
+
+                        pb.lock().unwrap().inc();
                     }
-                    pb.lock().unwrap().inc();
                 });
             }
         });
         
         pb.into_inner().unwrap().finish();
+        drop(lines);
         data
     }
 }
