@@ -10,3 +10,10 @@ fastrand = "2.5.0"
 pbr = "1.1.1"
 asset-importer = { version = "0.9.0", features = ["glam"] }
 dyn-clone = "1.0.20"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+
+[build]
+rustflags = ["-C", "target-cpu=native"]

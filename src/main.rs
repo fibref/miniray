@@ -15,9 +15,10 @@ mod texture;
 fn main() {
     println!("Hello, world!");
 
-    let mut scene = Scene::import("scene.glb");
+    let mut scene = Scene::import("Sponza.glb");
 
-    scene.camera.sample_per_pixel = 256;
+    scene.camera.height = 768;
+    scene.camera.sample_per_pixel = 64;
     scene.camera.max_depth = 4;
 
     let start = Instant::now();

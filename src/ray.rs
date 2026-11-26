@@ -17,7 +17,7 @@ impl Ray {
             return Vec3::ZERO;
         }
 
-        let hit_info = hittable.hit(self);
+        let hit_info = hittable.hit(self, f64::INFINITY);
         match hit_info {
             Some(x) => {
                 let emission = x.material.emit();

@@ -20,7 +20,7 @@ impl Light for Directional {
             dir: -self.dir,
         };
         let cosine = DVec3::dot(ray.dir.normalize(), normal);
-        let blocked = cosine <= 0.0 || hittable.hit(&ray).is_some();
+        let blocked = cosine <= 0.0 || hittable.hit(&ray, f64::INFINITY).is_some();
         if blocked {
             Vec3::ZERO
         } else {
@@ -45,7 +45,7 @@ impl Light for Point {
         };
         let cosine = DVec3::dot(ray.dir.normalize(), normal);
         let blocked = cosine <= 0.0
-            || hittable.hit(&ray).is_some_and(|hit_record| hit_record.t < 1.0);
+            || hittable.hit(&ray, 1.0).is_some(); // 1.0 is the distance to the light
         if blocked {
             Vec3::ZERO
         } else {

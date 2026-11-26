@@ -11,7 +11,7 @@ use glam::{DVec2, DVec3, Vec2};
 
 pub trait Hittable: Sync + DynClone {
     // Return hit information in the forward direction of the ray.
-    fn hit(&self, ray: &Ray) -> Option<HitRecord<'_>>;
+    fn hit(&self, ray: &Ray, t_max: f64) -> Option<HitRecord<'_>>;
     fn bounding_box(&self) -> AABB;
 }
 dyn_clone::clone_trait_object!(Hittable);
@@ -39,7 +39,7 @@ pub struct AABB {
 }
 
 impl AABB {
-    pub fn intersect(&self, ray: &Ray) -> bool {
+    pub fn intersect(&self, ray: &Ray, t_max: f64) -> bool {
         let inv_dir = DVec3::ONE / ray.dir;
         let t1 = (self.min - ray.origin) * inv_dir;
         let t2 = (self.max - ray.origin) * inv_dir;
@@ -50,7 +50,7 @@ impl AABB {
         let t_enter_max = t_enter.max_element();
         let t_exit_min = t_exit.min_element();
 
-        t_exit_min >= t_enter_max && t_exit_min >= 0.0
+        t_exit_min >= t_enter_max && t_exit_min >= 0.0 && t_enter_max <= t_max
     }
 
     pub fn from_multiple(aabbs: &[AABB]) -> Self {
@@ -104,13 +104,14 @@ impl<'a> BVHNode<'a> {
 }
 
 impl Hittable for BVHNode<'_> {
-    fn hit(&self, ray: &Ray) -> Option<HitRecord<'_>> {
-        if !self.aabb.intersect(ray) {
+    fn hit(&self, ray: &Ray, t_max: f64) -> Option<HitRecord<'_>> {
+        if !self.aabb.intersect(ray, t_max) {
             return None;
         }
 
-        let left_hit = self.left.hit(ray);
-        let right_hit = self.right.hit(ray);
+        let left_hit = self.left.hit(ray, t_max);
+        let new_t_max = left_hit.as_ref().map_or(t_max, |hit| hit.t);
+        let right_hit = self.right.hit(ray, new_t_max);
 
         // pick the closest hit
         match (left_hit, right_hit) {
@@ -156,7 +157,7 @@ impl Sphere {
 }
 
 impl Hittable for Sphere {
-    fn hit(&self, ray: &Ray) -> Option<HitRecord<'_>> {
+    fn hit(&self, ray: &Ray, t_max: f64) -> Option<HitRecord<'_>> {
         let oc = self.center - ray.origin;
         let a = ray.dir.length_squared();
         let h = DVec3::dot(ray.dir, oc); // h = -b / 2
@@ -170,7 +171,7 @@ impl Hittable for Sphere {
         let t1 = (h - dis_sqrt) / a;
         let t2 = (h + dis_sqrt) / a;
 
-        if t2 <= 0.0001 {
+        if t2 <= 0.0001 || t1 > t_max {
             return None;
         }
 
@@ -185,7 +186,7 @@ impl Hittable for Sphere {
                 facing: Facing::Front,
                 material: self.material,
             })
-        } else {
+        } else if t2 <= t_max {
             let pos = ray.at(t2);
             let normal = (pos - self.center) / self.radius;
             Some(HitRecord {
@@ -196,6 +197,8 @@ impl Hittable for Sphere {
                 facing: Facing::Back,
                 material: self.material,
             })
+        } else {
+            None
         }
     }
 
@@ -249,7 +252,7 @@ impl Triangle {
 }
 
 impl Hittable for Triangle {
-    fn hit(&self, ray: &Ray) -> Option<HitRecord<'_>> {
+    fn hit(&self, ray: &Ray, t_max: f64) -> Option<HitRecord<'_>> {
         // Möller-Trumbore
         let v1 = self.vertices[1] - self.vertices[0];
         let v2 = self.vertices[2] - self.vertices[0];
@@ -280,7 +283,7 @@ impl Hittable for Triangle {
 
         // calculate and check t
         let t = DVec3::dot(v2, s2) * inv_det;
-        if t < 0.0001 {
+        if t < 0.0001 || t > t_max {
             return None;
         }
 
@@ -311,7 +314,7 @@ impl Hittable for Triangle {
 #[derive(Clone)]
 pub struct Dummy;
 impl Hittable for Dummy {
-    fn hit(&self, _ray: &Ray) -> Option<HitRecord<'_>> {
+    fn hit(&self, _ray: &Ray, _t_max: f64) -> Option<HitRecord<'_>> {
         None
     }
 
