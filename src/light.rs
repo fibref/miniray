@@ -19,11 +19,12 @@ impl Light for Directional {
             origin: shading_point,
             dir: -self.dir,
         };
-        let blocked = hittable.hit(&ray).is_some();
+        let cosine = DVec3::dot(ray.dir.normalize(), normal);
+        let blocked = cosine <= 0.0 || hittable.hit(&ray).is_some();
         if blocked {
             Vec3::ZERO
         } else {
-            todo!()
+            self.color * cosine as f32
         }
     }
     fn light_dir(&self, _shading_point: DVec3) -> DVec3 {
@@ -43,8 +44,8 @@ impl Light for Point {
             dir: self.pos - shading_point,
         };
         let cosine = DVec3::dot(ray.dir.normalize(), normal);
-        let blocked = hittable.hit(&ray).is_some_and(|hit_record| hit_record.t < 1.0)
-            || cosine <= 0.0;
+        let blocked = cosine <= 0.0
+            || hittable.hit(&ray).is_some_and(|hit_record| hit_record.t < 1.0);
         if blocked {
             Vec3::ZERO
         } else {

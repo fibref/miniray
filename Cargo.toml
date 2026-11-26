@@ -4,9 +4,9 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-glam = "0.32.1"
+glam = "0.34.3"
 image = "0.25.10"
 fastrand = "2.5.0"
 pbr = "1.1.1"
-asset-importer = { version = "0.8.0", features = ["glam"] }
+asset-importer = { version = "0.9.0", features = ["glam"] }
 dyn-clone = "1.0.20"
